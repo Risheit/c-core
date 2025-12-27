@@ -35,7 +35,7 @@ target_link_libraries(${EXE_NAME} PRIVATE CCORE::std)
 ```
 
 ## Including the SDL3 extension.
-C-Core provides SDL3 support, along with SDL3 extension under the `std/sdl` include path.
+C-Core provides SDL3 (release 3.2.x) support, along with SDL3 extension under the `std/sdl` include path.
 SDL3 support is under the `EXT_SDL` option, and can be enabled with the `-DEXT_SDL` command line option when configuring, or within CMake by adding the following set command before adding the `c-core` subdirectory.
 ```cmake
 set(CACHE{EXT_SDL} HELP "Enable C-Core SDL extension" VALUE ON)
