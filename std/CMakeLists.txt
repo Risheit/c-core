@@ -1,3 +1,6 @@
 add_library(std STATIC cli.c error.c io.c memory.c strings.c)
+target_include_directories(
+  std PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include/core>
+             $<INSTALL_INTERFACE:include/core>)
 
-target_include_directories(std PRIVATE "../include/")
+add_library(CCORE::std ALIAS std)
