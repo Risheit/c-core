@@ -51,7 +51,7 @@ static_assert(RESIZABLE_ARENA_META_SIZE >=
                       align_forward(sizeof(mem_page **)),
               "Incorrectly defined RESIZABLE_ARENA_META_SIZE.");
 
-std_arena *arena_create(size_t size, enum std_arena_flags flags) {
+std_arena *std_arena_create(size_t size, enum std_arena_flags flags) {
   // Allocate no more than [size], use some of the allocated space
   // to store arena metadata.
   if (flags & EXACT_ARENA_SIZING) {
@@ -110,7 +110,7 @@ std_arena *arena_create(size_t size, enum std_arena_flags flags) {
   }
 }
 
-std_arena *arena_create_s(void *memory, size_t size, std_arena_flags flags) {
+std_arena *std_arena_create_s(void *memory, size_t size, std_arena_flags flags) {
   std_arena *arena = memory;
 
   std_nonnull(memory);
@@ -129,7 +129,7 @@ std_arena *arena_create_s(void *memory, size_t size, std_arena_flags flags) {
   return arena;
 }
 
-void arena_destroy(std_arena *arena) {
+void std_arena_destroy(std_arena *arena) {
   arena->iflags &= ~IS_ALLOCATED;
 
   if (arena->iflags & IS_STACK) {
@@ -205,8 +205,8 @@ static void resize(std_arena *arena, size_t min_size) {
   byte *memory = malloc(resize_amt);
 }
 
-void *arena_alloc(std_arena arena[static 1], size_t size) {
-  std_assert(is_allocated(arena), "arena memory must exist");
+void *std_arena_alloc(std_arena arena[static 1], size_t size) {
+  std_assert(std_arena_is_allocated(arena), "arena memory must exist");
 
   size_t alloc_amt = align_forward(size) + size;
 
@@ -222,7 +222,7 @@ void *arena_alloc(std_arena arena[static 1], size_t size) {
       return nullptr;
     }
 
-    if (!is_allocated(arena)) // Reallocation failed
+    if (!std_arena_is_allocated(arena)) // Reallocation failed
     {
       if (!(arena->flags & CONTINUE_ON_ALLOC_FAILURE))
         std_panic("Failed to reallocate backing memory.");
@@ -236,6 +236,6 @@ void *arena_alloc(std_arena arena[static 1], size_t size) {
   return ptr;
 }
 
-void arena_clean(std_arena *arena) { arena->offset = 0; }
+void std_arena_clean(std_arena *arena) { arena->offset = 0; }
 
-bool is_allocated(std_arena *arena) { return arena->iflags & IS_ALLOCATED; }
+bool std_arena_is_allocated(std_arena *arena) { return arena->iflags & IS_ALLOCATED; }

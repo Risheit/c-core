@@ -57,7 +57,7 @@ typedef struct std_argument {
  *
  * This function is not thread-safe. 
  */
-std_argument cli_argv_next(int argc, const char **argv);
+std_argument std_cli_argv_next(int argc, const char **argv);
 
 /**
  * Resets the state of argument parsing. Calling [next_argv] after calling this
@@ -65,12 +65,12 @@ std_argument cli_argv_next(int argc, const char **argv);
  *
  * NOTE: This function is not thread-safe.
  */
-void cli_argv_reset();
+void std_cli_argv_reset();
 
 /**
  * Returns true if and only if [arg] is a CLI option, and it has the name
  * [name]. Note that option names including any preceding "-" characters.
  */
-bool cli_is_option(std_argument arg, std_string name);
+bool std_cli_is_option(std_argument arg, std_string name);
 
 #endif // STD_CLI_H

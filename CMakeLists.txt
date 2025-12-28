@@ -9,6 +9,7 @@ set(CMAKE_C_STANDARD 23)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+message(STATUS "Configuring C-Core library")
 add_subdirectory(std/)
 
 option(EXT_TESTS "Optional extension for running tests" OFF)

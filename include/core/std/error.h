@@ -7,12 +7,12 @@
 /**
  * Equivalent to standard stdio.h [perror] function.
  */
-void errno_msg(const char *msg);
+void std_errno_msg(const char *msg);
 
 /**
  * Prints formatted output to standard error.
  */
-int eprintf(const char *restrict format, ...)
+int std_eprintf(const char *restrict format, ...)
     __attribute__((format(printf, 1, 2)));
 
 #ifdef __builtin_expect

@@ -102,13 +102,13 @@ typedef struct std_arena std_arena;
  * Alignment can be overridden by defining [ARENA_ALIGN] to a custom value
  * before including [memory.h].
  */
-std_arena *arena_create(size_t size, enum std_arena_flags flags);
+std_arena *std_arena_create(size_t size, enum std_arena_flags flags);
 
 /**
  * Macro create a simple dynamic arena with initial capacity storing 4
  * [size_t] objects.
  */
-#define std_dyn_arena() arena_create(4 * sizeof(size_t), 0)
+#define std_dyn_arena() std_arena_create(4 * sizeof(size_t), 0)
 
 /**
  * Initializes the arena [arena] with [size] bytes and [flags] flags,
@@ -131,8 +131,8 @@ std_arena *arena_create(size_t size, enum std_arena_flags flags);
  * [arena_create] for remarks on the way dynamic and static sized arenas are
  * treated internally.
  */
-std_arena *arena_create_s(void *memory, size_t size,
-                          enum std_arena_flags flags);
+std_arena *std_arena_create_s(void *memory, size_t size,
+                              enum std_arena_flags flags);
 
 /**
  * Frees memory allocated by an arena and sets its [is_allocated] flag to
@@ -143,7 +143,7 @@ std_arena *arena_create_s(void *memory, size_t size,
  *
  * * Destroys are O(# of resizes performed) in performance.
  */
-void arena_destroy(std_arena *arena);
+void std_arena_destroy(std_arena *arena);
 
 /**
  * Allocate a pointer of [size] bytes within the arena. If allocation fails,
@@ -158,7 +158,7 @@ void arena_destroy(std_arena *arena);
  * fails during this call and [CONTINUE_ON_ALLOC_FAILURE] is set, the arena
  * does not panic, and the function returns [NULL].
  */
-void *arena_alloc(std_arena *arena, size_t size);
+void *std_arena_alloc(std_arena *arena, size_t size);
 
 /**
  * De-allocates all memory initialized within an arena, allowing
@@ -173,12 +173,12 @@ void *arena_alloc(std_arena *arena, size_t size);
  * * Cleans may reset dynamically expanded arenas to their original size. Any
  * reallocations previously performed must be performed again.
  */
-void arena_clean(std_arena *arena);
+void std_arena_clean(std_arena *arena);
 
 /**
  * Returns [true] if the backing memory for this arena is correctly
  * allocated, and [false] otherwise.
  */
-bool is_allocated(std_arena *arena);
+bool std_arena_is_allocated(std_arena *arena);
 
 #endif // STD_MEMORY_H

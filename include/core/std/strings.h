@@ -44,7 +44,7 @@ enum {
  *
  * On an error, the [err] field of string is set to a non-zero value.
  */
-std_string str_create(std_arena *arena, const char *buf);
+std_string std_str_create(std_arena *arena, const char *buf);
 
 // NOLINTBEGIN(bugprone-sizeof-expression)
 // When used with pointers, the expanded macro contains a sizeof(char *) 
@@ -63,7 +63,7 @@ std_string str_create(std_arena *arena, const char *buf);
       const char[]: (                                                          \
                std_string){._buf = (buf), ._len = sizeof(buf) - 1, ._err = 0}, \
       char[]: (std_string){._buf = (buf), ._len = sizeof(buf) - 1, ._err = 0}, \
-      default: str_const_create(buf))
+      default: std_str_const_create(buf))
 
 // NOLINTEND(bugprone-sizeof-expression)
 
@@ -80,20 +80,20 @@ std_string str_create(std_arena *arena, const char *buf);
  *
  * Prefer using the [str] utility macro over this function.
  */
-std_string str_const_create(const char *buf);
+std_string std_str_const_create(const char *buf);
 
 /**
  * Compares the two strings [a] and [b].
  * Returns 0 if they are equal, a positive integer if [a] > [b], and a negative
  * integer if [b] > [a].
  */
-int str_compare(std_string a, std_string b);
+int std_str_compare(std_string a, std_string b);
 
 /**
  * Get the substring of [str] starting at (inclusive) [from] to (exclusive)
  * [end]. Returns an empty string if [from] >= [to].
  */
-std_string str_substr(std_string str, size_t from, size_t to);
+std_string std_str_substr(std_string str, size_t from, size_t to);
 
 /**
  * Tokenized component of a string.
@@ -109,52 +109,52 @@ typedef struct std_str_token std_str_token;
  * Multiple sequential [split] characters are ignored. For example: for a split
  * character "C", "CHelloCCWorldC" -> ["Hello", "World"]
  */
-void str_tokenize(std_str_token *token, std_string str, char split);
+void std_str_tokenize(std_str_token *token, std_string str, char split);
 
 /**
  * Returns the next token substring for [token]. Returns true if it could do
  * this successfully. Otherwise, return false if the end of string is reached,
  * with the token set to contain an error string.
  */
-bool str_token_next(std_str_token *token);
+bool std_str_token_next(std_str_token *token);
 
 /**
  * Returns the substring that is signified by [token].
  */
-std_string str_token_get(std_str_token *token);
+std_string std_str_token_get(std_str_token *token);
 
 /**
  * Get the index location of the first occurrence of [c] in [str].
  */
-size_t str_find(std_string str, char c);
+size_t std_str_find(std_string str, char c);
 
 /**
  * Get the length of string [str].
  */
-size_t str_len(std_string str);
+size_t std_str_len(std_string str);
 
 /**
  * Appends [left] to [right] and stores it in [arena]. If [arena] cannot store
  * the appended strings and doesn't panic, an error string is returned.
  */
-std_string str_append(std_arena *arena, std_string left, std_string right);
+std_string std_str_append(std_arena *arena, std_string left, std_string right);
 
 /**
  * Returns an empty string with length 0.
  */
-std_string str_empty();
+std_string std_str_empty();
 
 /**
  * Returns a null string. Unlike an empty string, this string has a size of 1,
  * but only contains null-terminator characters. Use this to read an explicit
  * null-terminator into an [std_string] if needed.
  */
-std_string str_null();
+std_string std_str_null();
 
 /**
  * Returns true iff the string is empty.
  */
-bool str_isempty(std_string str);
+bool std_str_is_empty(std_string str);
 
 /**
  * Get the underlying buffer of the string [str].
@@ -163,7 +163,7 @@ bool str_isempty(std_string str);
  * interactions with raw buffers with the string's length using [str_len], or
  * use [str_get_safe] to get a safe null-terminated copy.
  */
-const char *str_get(std_string str);
+const char *std_str_get(std_string str);
 
 /**
  * Gets a guaranteed null-terminated buffer of the string [str]. This
@@ -173,29 +173,29 @@ const char *str_get(std_string str);
  * Use [str_get] to access the underlying buffer without a copy, but note that
  * buffer is not guaranteed to be null-terminated.
  */
-const char *str_get_safe(std_arena *arena, std_string str);
+const char *std_str_get_safe(std_arena *arena, std_string str);
 
 /**
  * Get the character at the index [at] in [str]. Throws an error if [at] is
  * past the end of the string.
  */
-char str_at(std_string str, size_t at);
+char std_str_at(std_string str, size_t at);
 
 /**
  * Returns an invalid string.
  */
-std_string str_bad();
+std_string std_str_bad();
 
 /**
  * Returns an invalid string with a specific error code.
  */
-std_string str_bad_ped(int err);
+std_string std_str_bad_ped(int err);
 
 /**
  * Returns the error code of the string if it is invalid, and 0 if there is no
  * problem. See associated [STERR_] string error codes in this header file for
  * the meaning of each code.
  */
-int str_err(std_string str);
+int std_str_err(std_string str);
 
 #endif // STD_STRINGS_H

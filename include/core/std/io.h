@@ -39,7 +39,7 @@ enum {
  * file returned is inactive and marked with the relevant error number.
  * If the file fails to allocate, then [NULL] is returned.
  */
-std_file *file_open(std_arena *arena, std_string name, std_fopen_state state,
+std_file *std_file_open(std_arena *arena, std_string name, std_fopen_state state,
                     std_fopen_flags flags);
 
 /**
@@ -48,7 +48,7 @@ std_file *file_open(std_arena *arena, std_string name, std_fopen_state state,
  * inactive and marked with the relevant error number. If the file fails to
  * allocate, then [NULL] is returned.
  */
-std_file *file_temp(std_arena *arena);
+std_file *std_file_temp(std_arena *arena);
 
 /**
  * Closes a file. On a failure, errno is set as specified by [fclose], and
@@ -56,7 +56,7 @@ std_file *file_temp(std_arena *arena);
  * file object is marked inactive. If an inactive file is closed, nothing
  * occurs, and [file] is marked with [FERR_INACTIVE].
  */
-void file_close(std_file *file);
+void std_file_close(std_file *file);
 
 /**
  * Reads up to and including a newline character or EOF in [file]. On a failure,
@@ -67,7 +67,7 @@ void file_close(std_file *file);
  * contain a newline (in accordance with [fgetln]. On a read of EOF, an empty
  * string is returned, and [file] is marked with [FERR_EOF].
  */
-std_string file_read_line(std_arena *restrict arena, std_file *restrict file);
+std_string std_file_read_line(std_arena *restrict arena, std_file *restrict file);
 
 /**
  * Writes [n] items to [file], each of size [size] from memory [ptr], with
@@ -75,7 +75,7 @@ std_string file_read_line(std_arena *restrict arena, std_file *restrict file);
  * are written to the file, then [file] is marked with [FERR_WRITE]. Returns the
  * number of items written.
  */
-size_t file_write(const void *restrict ptr, size_t size, size_t n,
+size_t std_file_write(const void *restrict ptr, size_t size, size_t n,
                   std_file *restrict file);
 
 /**
@@ -83,23 +83,23 @@ size_t file_write(const void *restrict ptr, size_t size, size_t n,
  * an error occurs, then errno is set and [file] is marked with the relevant
  * error number.
  */
-void file_flush(std_file *file);
+void std_file_flush(std_file *file);
 
 /**
  * Returns the current value of the file position indicator, with semantics
  * equivalent to [ftell]. If an error occurs, then -1 is returned, errno is set
  * as specified by [ftell], and [file] is marked with the relevant error number.
  */
-long file_tell(std_file *file);
+long std_file_tell(std_file *file);
 
 /**
  * Standard [whence] values allowed for [file_seek].
  */
-typedef enum std_file_seek {
+typedef enum std_seek_pos {
   FSEEK_SET = 0, // Seeks to the beginning of the file.
   FSEEK_CUR = 1, // Seeks to the current file position.
   FSEEK_END = 2, // Seeks to the end of the file.
-} std_file_seek;
+} std_seek_pos;
 
 /**
  * Sets the position offset of [file], with semantics equivalent to [fseek].
@@ -107,7 +107,7 @@ typedef enum std_file_seek {
  * then errno is set as specified by [fseek] and [file] is marked with the
  * relevant error number.
  */
-void file_seek(std_file *file, long offset, std_file_seek whence);
+void std_file_seek(std_file *file, long offset, std_seek_pos whence);
 
 /**
  * Returns the error code associated with [file]. The error code of a file is 0
@@ -123,12 +123,12 @@ void file_seek(std_file *file, long offset, std_file_seek whence);
  * important, store or check the error code with [file_err] before calling
  * another file function.
  */
-int file_err(const std_file *file);
+int std_file_err(const std_file *file);
 
 /**
  * Resets the error code associated with [file] to 0.
  */
-void file_reset_err(std_file *file);
+void std_file_reset_err(std_file *file);
 
 /**
  * Returns true if [file] is active, and false if not. Files are marked
@@ -136,6 +136,6 @@ void file_reset_err(std_file *file);
  * become inoperable. All file manipulation functions on inactive files do
  * nothing, and mark the file with an error of [FERR_INACTIVE].
  */
-bool file_active(const std_file *file);
+bool std_file_is_active(const std_file *file);
 
 #endif // STD_IO_H
