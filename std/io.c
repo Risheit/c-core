@@ -37,13 +37,10 @@ static const char *fopen_string(std_fopen_state state, bool dont_overwrite) {
   }
 }
 
-std_file *std_file_open(std_arena *arena, std_string name, std_fopen_state state,
-                    std_fopen_flags flags) {
-  // Create a copy of [name] that is guaranteed to be null-terminated by
-  // appending a null-terminator to the EOS.
-  char buf[ARENA_META_SIZE + NAME_MAX + 1]; // Max path length buffer.
+std_file *std_file_open(std_arena *arena, std_string name,
+                        std_fopen_state state, std_fopen_flags flags) {
   std_arena *working_memory =
-      std_arena_create_s(buf, (ARENA_META_SIZE + NAME_MAX + 1) * sizeof buf[0], 0);
+      std_arena_create((NAME_MAX + 1) * sizeof(char), ARENA_STOP_RESIZE);
 
   std_file *file = std_arena_alloc(arena, sizeof(std_file));
   if (!file) {
