@@ -15,6 +15,12 @@ void std_errno_msg(const char *msg);
 int std_eprintf(const char *restrict format, ...)
     __attribute__((format(printf, 1, 2)));
 
+/**
+ * Prints formatted output to standard output.
+ */
+int std_printf(const char *restrict format, ...)
+    __attribute__((format(printf, 1, 2)));
+
 #ifdef __builtin_expect
 #define _std_builtin_expect(e, v) __builtin_expect((e), (v))
 #else

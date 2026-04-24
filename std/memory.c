@@ -31,14 +31,14 @@ typedef struct mem_page {
   byte *memory;                     // Backing memory.
 } mem_page;
 
-#define BASE_MEM_PAGE_OFFSET (sizeof(mem_page))
+#define BASE_MEM_PAGE_OFFSET (sizeof(mem_page) + align_forward(sizeof(mem_page)))
 
 struct std_arena {
-  alignas(ARENA_ALIGN) size_t size; // The arena size.
-  enum std_arena_flags flags;       // Set arena flags.
-  enum internal_flags iflags;       // Set internal arena flags.
-  mem_page *first_page;             // Backing memory page.
-  mem_page *cur_page;               // Page in use.
+  alignas(ARENA_ALIGN) size_t unused; // Unused buffer space.
+  enum std_arena_flags flags;         // Set arena flags.
+  enum internal_flags iflags;         // Set internal arena flags.
+  mem_page *first_page;               // Backing memory page.
+  mem_page *cur_page;                 // Page in use.
 };
 
 static_assert(ARENA_META_SIZE == sizeof(std_arena) + sizeof(mem_page),
@@ -62,7 +62,7 @@ static bool alloc_mem_page(mem_page **page, size_t size) {
   }
 
   mem_page *new_page = (mem_page *)backing_memory;
-  new_page->size = size;
+  new_page->size = size + BASE_MEM_PAGE_OFFSET;
   new_page->offset = BASE_MEM_PAGE_OFFSET;
   new_page->next_page = nullptr;
   new_page->memory = backing_memory;
@@ -78,7 +78,6 @@ std_arena *std_arena_create(size_t size, std_arena_flags flags) {
     std_panic("Unable to allocate space for arena");
   }
 
-  arena->size = size;
   arena->flags = flags;
 
   if (!(flags & ARENA_CONT_ON_ALLOC_FAIL) &&
@@ -104,7 +103,6 @@ std_arena *std_arena_create_s(void *memory, size_t size,
   size_t backing_memory_size = size - sizeof(std_arena) - sizeof(mem_page);
 
   std_arena *arena = (std_arena *)memory;
-  arena->size = backing_memory_size;
   arena->flags = flags;
   arena->first_page = (mem_page *)(memory + sizeof(arena));
 
@@ -223,7 +221,7 @@ void *std_arena_alloc(std_arena *arena, size_t size) {
 void std_arena_clean(std_arena *arena) {
   mem_page *cur_page = arena->first_page;
 
-  // Cleans don't deallocate data, they just reset all offsets 
+  // Cleans don't deallocate data, they just reset all offsets
   // to base.
   while (cur_page != nullptr) {
     cur_page->offset = BASE_MEM_PAGE_OFFSET;
