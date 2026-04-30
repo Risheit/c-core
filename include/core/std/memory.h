@@ -111,7 +111,7 @@ std_arena *std_arena_create_s(void *memory, size_t size,
  * Frees memory allocated by an arena and sets its [is_allocated] flag to
  * [false]. Accessing an arena pointer after calling [arena_delete] is
  * undefined behaviour. Does nothing if the arena is already unallocated.
- * Does nothing but mark the arena memory as unallocated if the backing 
+ * Does nothing but mark the arena memory as unallocated if the backing
  * memory is externally managed.
  *
  * Remarks:
@@ -156,5 +156,12 @@ void std_arena_clean(std_arena *arena);
  * allocated, and [false] otherwise.
  */
 bool std_arena_is_allocated(std_arena *arena);
+
+size_t std_arena_size(std_arena *arena);
+
+/**
+ * Runs the [memset] standard library function.
+ */
+void std_memset(void *buf, int val, size_t size);
 
 #endif // STD_MEMORY_H

@@ -6,13 +6,9 @@
  */
 #pragma once
 
-#include "std/error.h" // IWYU pragma: keep
-#include <stdbool.h>
-#include <stdint.h>
-
 #define _TEST_STRINGIFY(Val) #Val
 #define _TEST_TO_STRING(Val) _TEST_STRINGIFY(Val)
-#define _TEST_ASSERT_DEFINED(f)                                                      \
+#define _TEST_ASSERT_DEFINED(f)                                                \
   static_assert(_Generic(&(f), __typeof__(&(f)): 1, default: 0),               \
                 #f " is not defined")
 
@@ -76,6 +72,15 @@
     }                                                                          \
   } while (0)
 
+#define _std_test_abort()                                                      \
+  do {                                                                         \
+    TEST_DNAME->state = testing_FAILED;                                        \
+    TEST_DNAME->failed++;                                                      \
+    TEST_DNAME->message =                                                      \
+        "line " _TEST_TO_STRING(__LINE__) ": code panicked.";                  \
+    return;                                                                    \
+  } while (0)
+
 /* Registration Macros */
 
 /**
@@ -96,7 +101,7 @@
  * Runs the test function [testname] defined using the [TEST] macro.
  */
 #define RUN(testname)                                                          \
-  _TEST_ASSERT_DEFINED(testname);                                                    \
+  _TEST_ASSERT_DEFINED(testname);                                              \
   do {                                                                         \
     TEST_DNAME.run++;                                                          \
     testname(&TEST_DNAME);                                                     \
@@ -104,18 +109,18 @@
       std_eprintf(#testname ":\n\t%s\n", TEST_DNAME.message);                  \
     }                                                                          \
     TEST_DNAME.state = testing_NOT_RUN;                                        \
-  } while (0);
+  } while (0)
 
 /**
  * Skips running the test function [testname].
  */
 #define SKIP(testname)                                                         \
-  _TEST_ASSERT_DEFINED(testname);                                                    \
+  _TEST_ASSERT_DEFINED(testname);                                              \
   do {                                                                         \
     TEST_DNAME.skipped++;                                                      \
     std_eprintf(#testname ": skipped.\n");                                     \
     TEST_DNAME.state = testing_NOT_RUN;                                        \
-  } while (0);
+  } while (0)
 
 /**
  * Ends the currently running test file, performing any necessary clean up
@@ -133,6 +138,12 @@
  * function names.
  */
 #define TEST(testname) void testname(_std_test_data *TEST_DNAME)
+
+#define _std_hook_abort _std_test_abort // Overwrite abort() calls in error.h
+
+#include "std/error.h" // IWYU pragma: keep
+#include <stdbool.h>
+#include <stdint.h>
 
 typedef enum _std_test_state {
   testing_PASSED,

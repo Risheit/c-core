@@ -31,14 +31,15 @@ typedef struct mem_page {
   byte *memory;                     // Backing memory.
 } mem_page;
 
-#define BASE_MEM_PAGE_OFFSET (sizeof(mem_page) + align_forward(sizeof(mem_page)))
+#define BASE_MEM_PAGE_OFFSET                                                   \
+  (sizeof(mem_page) + align_forward(sizeof(mem_page)))
 
 struct std_arena {
-  alignas(ARENA_ALIGN) size_t unused; // Unused buffer space.
-  enum std_arena_flags flags;         // Set arena flags.
-  enum internal_flags iflags;         // Set internal arena flags.
-  mem_page *first_page;               // Backing memory page.
-  mem_page *cur_page;                 // Page in use.
+  alignas(ARENA_ALIGN) size_t size; // Arena size.
+  enum std_arena_flags flags;       // Set arena flags.
+  enum internal_flags iflags;       // Set internal arena flags.
+  mem_page *first_page;             // Backing memory page.
+  mem_page *cur_page;               // Page in use.
 };
 
 static_assert(ARENA_META_SIZE == sizeof(std_arena) + sizeof(mem_page),
@@ -86,6 +87,7 @@ std_arena *std_arena_create(size_t size, std_arena_flags flags) {
     std_panic("Unable to allocate space for arena");
   }
 
+  arena->size = size;
   arena->cur_page = arena->first_page;
   arena->iflags = IS_ALLOCATED;
 
@@ -103,6 +105,7 @@ std_arena *std_arena_create_s(void *memory, size_t size,
   size_t backing_memory_size = size - sizeof(std_arena) - sizeof(mem_page);
 
   std_arena *arena = (std_arena *)memory;
+  arena->size = backing_memory_size;
   arena->flags = flags;
   arena->first_page = (mem_page *)(memory + sizeof(arena));
 
@@ -182,6 +185,7 @@ static bool resize(std_arena *arena, size_t min_size) {
     arena->cur_page->next_page = new_page;
     arena->cur_page = new_page;
   }
+  arena->size += new_page->size;
 
   return true;
 }
@@ -233,3 +237,9 @@ void std_arena_clean(std_arena *arena) {
 bool std_arena_is_allocated(std_arena *arena) {
   return arena->iflags & IS_ALLOCATED;
 }
+
+size_t std_arena_size(std_arena *arena) {
+  return arena->size;
+}
+
+void std_memset(void *buf, int val, size_t size) { memset(buf, val, size); }

@@ -8,7 +8,7 @@
 
 /**
  * String wrapper around raw char arrays. Elements should be accessed using
- * accessor functions rather than directly.
+ * access functions rather than directly.
  *
  * Strings are immutable, and strings might arbitrarily refer to the same
  * internal [char] buffer if they are related. When a string is created
@@ -19,15 +19,21 @@
  * Strings operate under the assumption that their underlying buffer will be
  * valid for the duration of the string's lifetime. Undefined behaviour occurs
  * if a backing string buffer, or an arena containing the backing string buffer
- * goes out of scope. Be careful when using standard strings as return values
- * that the underlying buffer is static, or has been allocated in an arena that
- * will continue to exist after function return.
+ * goes out of scope. Be careful when using standard strings as return values;
+ * ensure that the underlying buffer is static, or has been allocated in an
+ * arena that will continue to exist after function return.
  */
 typedef struct std_string {
   size_t _len;
   const char *_buf;
   int _err;
 } std_string;
+
+/**
+ * Identical to standard strings, string views semantically mark strings that
+ * do not own their underlying buffer.
+ */
+typedef std_string std_string_view;
 
 enum {
   STERR_OMEM = 1, // Out of memory to allocate string.
@@ -46,8 +52,7 @@ enum {
  */
 std_string std_str_create(std_arena *arena, const char *buf);
 
-// NOLINTBEGIN(bugprone-sizeof-expression)
-// When used with pointers, the expanded macro contains a sizeof(char *) 
+// When used with pointers, the expanded macro contains a sizeof(char *)
 // expression, which causes clang-tidy to issue a warning.
 
 /**
@@ -65,8 +70,6 @@ std_string std_str_create(std_arena *arena, const char *buf);
       char[]: (std_string){._buf = (buf), ._len = sizeof(buf) - 1, ._err = 0}, \
       default: std_str_const_create(buf))
 
-// NOLINTEND(bugprone-sizeof-expression)
-
 /**
  * Initializes a string into [str] from a given null-terminated char array
  * constant [buf]. [buf] is copied until it reaches the null-terminator. Calling
@@ -80,7 +83,7 @@ std_string std_str_create(std_arena *arena, const char *buf);
  *
  * Prefer using the [str] utility macro over this function.
  */
-std_string std_str_const_create(const char *buf);
+std_string_view std_str_const_create(const char *buf);
 
 /**
  * Compares the two strings [a] and [b].
@@ -93,7 +96,7 @@ int std_str_compare(std_string a, std_string b);
  * Get the substring of [str] starting at (inclusive) [from] to (exclusive)
  * [end]. Returns an empty string if [from] >= [to].
  */
-std_string std_str_substr(std_string str, size_t from, size_t to);
+std_string_view std_str_substr(std_string str, size_t from, size_t to);
 
 /**
  * Tokenized component of a string.
@@ -121,7 +124,7 @@ bool std_str_token_next(std_str_token *token);
 /**
  * Returns the substring that is signified by [token].
  */
-std_string std_str_token_get(std_str_token *token);
+std_string_view std_str_token_get(std_str_token *token);
 
 /**
  * Get the index location of the first occurrence of [c] in [str].
@@ -132,6 +135,23 @@ size_t std_str_find(std_string str, char c);
  * Get the length of string [str].
  */
 size_t std_str_len(std_string str);
+
+/**
+ * Get the substring of [str] that contains no preceding whitespace characters.
+ */
+std_string_view std_str_ltrim(std_string str);
+
+/**
+ * Get the substring of [str] that contains no trailing whitespace characters.
+ */
+std_string_view std_str_rtrim(std_string str);
+
+/**
+ * Get the substring of [str] that contains no preceding or trailing whitespace
+ * characters.
+ */
+std_string_view std_str_trim(std_string str);
+
 
 /**
  * Appends [left] to [right] and stores it in [arena]. If [arena] cannot store
@@ -163,7 +183,10 @@ bool std_str_is_empty(std_string str);
  * interactions with raw buffers with the string's length using [str_len], or
  * use [str_get_safe] to get a safe null-terminated copy.
  */
-const char *std_str_get(std_string str);
+const char *std_str_buf(std_string str);
+
+/** Alias to [std_str_buf] for shorter string access. */
+static inline const char *std_buf(std_string str) { return std_str_buf(str); }
 
 /**
  * Gets a guaranteed null-terminated buffer of the string [str]. This
@@ -173,7 +196,12 @@ const char *std_str_get(std_string str);
  * Use [str_get] to access the underlying buffer without a copy, but note that
  * buffer is not guaranteed to be null-terminated.
  */
-const char *std_str_get_safe(std_arena *arena, std_string str);
+const char *std_str_sbuf(std_arena *arena, std_string str);
+
+/** Alias to [std_str_sbuf] for shorter string access. */
+static inline const char *std_sbuf(std_arena *arena, std_string str) {
+  return std_str_sbuf(arena, str);
+}
 
 /**
  * Get the character at the index [at] in [str]. Throws an error if [at] is

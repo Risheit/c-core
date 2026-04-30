@@ -47,7 +47,7 @@ std_file *std_file_open(std_arena *arena, std_string name,
     return nullptr;
   }
 
-  file->handle = fopen(std_str_get_safe(working_memory, name),
+  file->handle = fopen(std_str_sbuf(working_memory, name),
                        fopen_string(state, flags & FOPEN_NO_OVERWRITE));
   file->err = 0;
   file->active = true;
@@ -87,7 +87,8 @@ void std_file_close(std_file *file) {
   file->active = false;
 }
 
-std_string std_file_read_line(std_arena *restrict arena, std_file *restrict file) {
+std_string std_file_read_line(std_arena *restrict arena,
+                              std_file *restrict file) {
   std_nonnull(arena);
   std_nonnull(file);
   ACTIVE(*file);
@@ -96,13 +97,14 @@ std_string std_file_read_line(std_arena *restrict arena, std_file *restrict file
   char *line = fgetln(file->handle, &len);
 
   // Failed to read line
-  if (line == NULL) {
-    if (feof(RAW(*file))) { // EOF reached
-      file->err = FERR_EOF;
+  if (feof(RAW(*file))) { // EOF reached
+    file->err = FERR_EOF;
+    if (line == NULL) {
       return std_str_empty();
     }
-    if (ferror(RAW(*file))) { // Error reached
-      file->err = errno;
+  } else if (ferror(RAW(*file))) { // Error reached
+    file->err = errno;
+    if (line == NULL) {
       return std_str_bad_ped(STERR_READ);
     }
   }
@@ -110,8 +112,26 @@ std_string std_file_read_line(std_arena *restrict arena, std_file *restrict file
   return std_str_create(arena, line);
 }
 
+size_t std_file_read(void *restrict ptr, std_file *restrict file, size_t n) {
+  std_nonnull(file);
+  ACTIVE(*file);
+
+  size_t amt = fread(ptr, n, 1, file->handle);
+
+  // Failed to read line
+  if (amt < n) {
+    if (feof(RAW(*file))) { // EOF reached
+      file->err = FERR_EOF;
+    } else if (ferror(RAW(*file))) { // Error reached
+      file->err = errno;
+    }
+  }
+
+  return amt;
+}
+
 size_t std_file_write(const void *restrict ptr, size_t size, size_t n,
-                  std_file *restrict file) {
+                      std_file *restrict file) {
   std_nonnull(ptr);
   std_nonnull(file);
   ACTIVE(*file);
@@ -133,7 +153,7 @@ void std_file_flush(std_file *file) {
     file->err = errno;
 }
 
-long std_file_tell(std_file *file) {
+uint64_t std_file_tell(std_file *file) {
   std_nonnull(file);
   ACTIVE(*file);
 
@@ -141,7 +161,7 @@ long std_file_tell(std_file *file) {
   if (offset == -1)
     file->err = errno;
 
-  return offset;
+  return (uint64_t)offset;
 }
 
 void std_file_seek(std_file *file, long offset, std_seek_pos whence) {
@@ -162,6 +182,16 @@ void std_file_seek(std_file *file, long offset, std_seek_pos whence) {
   }
 
   int res = fseek(RAW(*file), offset, sys_whence);
+}
+
+uint64_t std_file_size(std_file *file) {
+  uint64_t pos = std_file_tell(file);
+
+  std_file_seek(file, 0, FSEEK_END);
+  uint64_t size = std_file_tell(file);
+  std_file_seek(file, pos, FSEEK_SET);
+
+  return size;
 }
 
 int std_file_err(const std_file *file) {

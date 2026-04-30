@@ -21,10 +21,19 @@ int std_eprintf(const char *restrict format, ...)
 int std_printf(const char *restrict format, ...)
     __attribute__((format(printf, 1, 2)));
 
+/**
+ * Aborts the program.
+ */
+[[noreturn]] void std_abort();
+
 #ifdef __builtin_expect
 #define _std_builtin_expect(e, v) __builtin_expect((e), (v))
 #else
 #define _std_builtin_expect(e, v) (e)
+#endif
+
+#ifndef _std_hook_abort
+#define _std_hook_abort abort
 #endif
 
 #ifndef NDEBUG
@@ -56,16 +65,16 @@ int std_printf(const char *restrict format, ...)
 /**
  * Standard library assert function. Use [std_assert].
  */
-_Noreturn void _std_builtin_assert(const char *filename, const char *func,
-                                   int line, int expr, const char *err,
-                                   const char *format, ...)
+[[noreturn]] void _std_builtin_assert(const char *filename, const char *func,
+                                      int line, int expr, const char *err,
+                                      const char *format, ...)
     __attribute__((format(printf, 6, 7)));
 
 /**
  * Standard library panic function. Use [std_panic].
  */
-_Noreturn void _std_builtin_panic(const char *filename, const char *func,
-                                  int line, const char *format, ...)
+[[noreturn]] void _std_builtin_panic(const char *filename, const char *func,
+                                     int line, const char *format, ...)
     __attribute__((format(printf, 4, 5)));
 
 #endif // STD_ERROR_H

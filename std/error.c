@@ -5,8 +5,8 @@
 
 void std_errno_msg(const char *msg) { perror(msg); }
 
-__attribute__((format(printf, 1, 2))) int std_eprintf(const char *restrict format,
-                                                  ...) {
+__attribute__((format(printf, 1, 2))) int
+std_eprintf(const char *restrict format, ...) {
   va_list args;
   va_start(args, format);
   int ret = vfprintf(stderr, format, args);
@@ -15,8 +15,8 @@ __attribute__((format(printf, 1, 2))) int std_eprintf(const char *restrict forma
   return ret;
 }
 
-__attribute__((format(printf, 1, 2))) int std_printf(const char *restrict format,
-                                                  ...) {
+__attribute__((format(printf, 1, 2))) int
+std_printf(const char *restrict format, ...) {
   va_list args;
   va_start(args, format);
   int ret = vfprintf(stderr, format, args);
@@ -25,12 +25,11 @@ __attribute__((format(printf, 1, 2))) int std_printf(const char *restrict format
   return ret;
 }
 
-
-_Noreturn void _std_builtin_assert(const char *filename, const char *func,
+[[noreturn]] void _std_builtin_assert(const char *filename, const char *func,
                                    int line, int expr, const char *err,
                                    const char *format, ...) {
   std_eprintf("Assertion failed: function %s, file %s, line %d\n%s: ", func,
-          filename, line, err);
+              filename, line, err);
 
   va_list args;
   va_start(args, format);
@@ -40,8 +39,8 @@ _Noreturn void _std_builtin_assert(const char *filename, const char *func,
   abort();
 }
 
-_Noreturn void _std_builtin_panic(const char *filename, const char *func,
-                                  int line, const char *format, ...) {
+[[noreturn]] void _std_builtin_panic(const char *filename, const char *func,
+                                     int line, const char *format, ...) {
   std_eprintf("Panic: ");
 
   va_list args;
@@ -49,5 +48,9 @@ _Noreturn void _std_builtin_panic(const char *filename, const char *func,
   int ret = vfprintf(stderr, format, args);
   va_end(args);
   fprintf(stderr, ".\n");
-  abort();
+  _std_hook_abort();
+}
+
+[[noreturn]] void std_abort() {
+  _std_hook_abort();
 }

@@ -1,6 +1,7 @@
 #include "std/strings.h"
 #include "std/error.h"
 #include "std/memory.h"
+#include <ctype.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -39,7 +40,7 @@ int std_str_compare(std_string a, std_string b) {
   if (std_str_len(a) != std_str_len(b))
     return std_str_len(a) > std_str_len(b) ? 1 : -1;
 
-  return strncmp(std_str_get(a), std_str_get(b), std_str_len(a));
+  return strncmp(std_str_buf(a), std_str_buf(b), std_str_len(a));
 }
 
 std_string std_str_substr(std_string str, size_t from, size_t to) {
@@ -50,16 +51,16 @@ std_string std_str_substr(std_string str, size_t from, size_t to) {
 
   size_t len = to > std_str_len(str) ? std_str_len(str) : to;
   std_string string = {
-      ._buf = std_str_get(str) + from, ._len = len - from, ._err = false};
+      ._buf = std_str_buf(str) + from, ._len = len - from, ._err = false};
 
   return string;
 }
 
 struct std_str_token {
-  size_t pos;         // The current position in the string.
-  std_string value;   // The substring value.
-  std_string *parent; // The parent string.
-  char split;         // The split character
+  size_t pos;            // The current position in the string.
+  std_string_view value; // The substring value.
+  std_string *parent;    // The parent string.
+  char split;            // The split character
 };
 
 void std_str_tokenize(std_str_token *token, std_string string, char split) {
@@ -133,6 +134,27 @@ size_t std_str_len(std_string str) {
   return str._len;
 }
 
+std_string_view std_str_ltrim(std_string str) {
+  size_t start;
+  for (start = 0; start < std_str_len(str) || !isspace(str._buf[start]);
+       start++)
+    ;
+
+  return std_str_substr(str, start, std_str_len(str));
+}
+
+std_string_view std_str_rtrim(std_string str) {
+  size_t end;
+  for (end = std_str_len(str); end > 0 || !isspace(str._buf[end]); end--)
+    ;
+
+  return std_str_substr(str, 0, end);
+}
+
+std_string_view std_str_trim(std_string str) {
+  return std_str_rtrim(std_str_ltrim(str));
+}
+
 std_string std_str_append(std_arena *arena, std_string left, std_string right) {
   size_t size = std_str_len(left) + std_str_len(right);
 
@@ -164,12 +186,12 @@ bool std_str_is_empty(std_string str) {
   return std_str_len(str) == 0;
 }
 
-const char *std_str_get(std_string str) {
+const char *std_str_buf(std_string str) {
   STR_VALID(str);
   return str._buf;
 }
 
-const char *std_str_get_safe(std_arena *arena, std_string str) {
+const char *std_str_sbuf(std_arena *arena, std_string str) {
   STR_VALID(str);
   std_string safe_string = std_str_append(arena, str, std_str_null());
   return safe_string._buf;

@@ -1,4 +1,5 @@
 #include "std/cli.h"
+#include "std/error.h"
 #include "std/strings.h"
 #include <stdbool.h>
 
@@ -19,29 +20,30 @@ static std_argument parse_long_opt(std_string opt) {
   if (split == std_str_len(opt))
     return (std_argument){
         .type = ARG_OPTION,
-        .option = {.arg = std_str_empty(), .name = opt, .has_arg = false}};
+        .option = {._arg = std_str_empty(), .name = opt, ._has_arg = false}};
 
   // Found argument of type --long=arg
   return (std_argument){
       .type = ARG_OPTION,
-      .option = {.arg = std_str_substr(opt, split + 1, std_str_len(opt)),
+      .option = {._arg = std_str_substr(opt, split + 1, std_str_len(opt)),
                  .name = std_str_substr(opt, 0, split),
-                 .has_arg = true}};
+                 ._has_arg = true}};
 }
 
 static std_argument parse_short_opt(std_string opt) {
 
   // Found argument of type -farg
   if (std_str_len(opt) > 2)
-    return (std_argument){.type = ARG_OPTION,
-                          .option = {.arg = std_str_substr(opt, 2, std_str_len(opt)),
-                                     .name = std_str_substr(opt, 0, 2),
-                                     .has_arg = true}};
+    return (std_argument){
+        .type = ARG_OPTION,
+        .option = {._arg = std_str_substr(opt, 2, std_str_len(opt)),
+                   .name = std_str_substr(opt, 0, 2),
+                   ._has_arg = true}};
 
   // Found argument of type -f
   return (std_argument){
       .type = ARG_OPTION,
-      .option = {.arg = std_str_empty(), .name = opt, .has_arg = false}};
+      .option = {._arg = std_str_empty(), .name = opt, ._has_arg = false}};
 }
 
 static std_argument parse_opt(std_string opt) {
@@ -50,7 +52,7 @@ static std_argument parse_opt(std_string opt) {
 }
 
 /**
- * Thread-safe version of [cli_argv_next]. [opt_cur] points to the current 
+ * Thread-safe version of [cli_argv_next]. [opt_cur] points to the current
  * argument index of [argv], and [is_args_region] is true if the seen
  * [argv] element should be parsed as arguments always.
  */
@@ -82,6 +84,40 @@ static std_argument cli_argv_next_t(int *opt_cur, bool *is_args_region,
 
 std_argument std_cli_argv_next(int argc, const char **argv) {
   return cli_argv_next_t(&g_opt_cur, &g_is_args_region, argc, argv);
+}
+
+static std_string cli_get_arg_t(int *opt_cur, bool *is_args_region,
+                                std_argument opt, int argc, const char **argv) {
+  if (opt.option._has_arg) {
+    return opt.option._arg;
+  }
+
+  if (*opt_cur >= argc || *is_args_region) {
+    return std_str_empty();
+  }
+
+  std_string this_arg = str(argv[*opt_cur]);
+
+  // Start of argument only section (end of option section
+  if (std_str_compare(this_arg, str("--")) == 0) {
+    return std_str_empty();
+  }
+
+  // No argument found
+  if (get_arg_type(*is_args_region, this_arg) == ARG_OPTION) {
+    return std_str_empty();
+  }
+
+  // Only read in arguments, not options before hitting the end of
+  // option section
+  (*opt_cur)++;
+  return this_arg;
+}
+
+std_string std_cli_get_arg(std_argument opt, int argc, const char **argv) {
+  std_assert(opt.type == ARG_OPTION, "Parmater passed in was not an option");
+
+  return cli_get_arg_t(&g_opt_cur, &g_is_args_region, opt, argc, argv);
 }
 
 void std_cli_argv_reset() {

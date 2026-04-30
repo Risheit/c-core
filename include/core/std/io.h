@@ -39,8 +39,8 @@ enum {
  * file returned is inactive and marked with the relevant error number.
  * If the file fails to allocate, then [NULL] is returned.
  */
-std_file *std_file_open(std_arena *arena, std_string name, std_fopen_state state,
-                    std_fopen_flags flags);
+std_file *std_file_open(std_arena *arena, std_string name,
+                        std_fopen_state state, std_fopen_flags flags);
 
 /**
  * Opens a temporary file in accordance with the function [tmpfile].
@@ -67,7 +67,18 @@ void std_file_close(std_file *file);
  * contain a newline (in accordance with [fgetln]. On a read of EOF, an empty
  * string is returned, and [file] is marked with [FERR_EOF].
  */
-std_string std_file_read_line(std_arena *restrict arena, std_file *restrict file);
+std_string std_file_read_line(std_arena *restrict arena,
+                              std_file *restrict file);
+
+/**
+ * Reads [n] bytes each read from [file] into [ptr]. On a failure, an error
+ * string is returned, errno is set as specified by [fread], and [file] is
+ * marked with the relevant error number. On a read of EOF, all available items
+ * are written, and [file] is marked with [FERR_EOF]. The function returns the
+ * number of bytes read. This might be smaller than [n] if the end of file was
+ * reached.
+ */
+size_t std_file_read(void *restrict ptr, std_file *restrict file, size_t n);
 
 /**
  * Writes [n] items to [file], each of size [size] from memory [ptr], with
@@ -76,7 +87,7 @@ std_string std_file_read_line(std_arena *restrict arena, std_file *restrict file
  * number of items written.
  */
 size_t std_file_write(const void *restrict ptr, size_t size, size_t n,
-                  std_file *restrict file);
+                      std_file *restrict file);
 
 /**
  * Flushes any buffered I/O to [file] with semantics equivalent to [fflush]. If
@@ -90,7 +101,7 @@ void std_file_flush(std_file *file);
  * equivalent to [ftell]. If an error occurs, then -1 is returned, errno is set
  * as specified by [ftell], and [file] is marked with the relevant error number.
  */
-long std_file_tell(std_file *file);
+uint64_t std_file_tell(std_file *file);
 
 /**
  * Standard [whence] values allowed for [file_seek].
@@ -103,11 +114,16 @@ typedef enum std_seek_pos {
 
 /**
  * Sets the position offset of [file], with semantics equivalent to [fseek].
- * [whence] can be set to [FSEEK_SET], [FSEEK_CUR], or [FSEEK_END]. If an error occurs,
- * then errno is set as specified by [fseek] and [file] is marked with the
- * relevant error number.
+ * [whence] can be set to [FSEEK_SET], [FSEEK_CUR], or [FSEEK_END]. If an error
+ * occurs, then errno is set as specified by [fseek] and [file] is marked with
+ * the relevant error number.
  */
 void std_file_seek(std_file *file, long offset, std_seek_pos whence);
+
+/**
+ * Returns the size of [file] in bytes.
+ */
+uint64_t std_file_size(std_file *file);
 
 /**
  * Returns the error code associated with [file]. The error code of a file is 0

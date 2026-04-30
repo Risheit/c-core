@@ -5,7 +5,7 @@
 Configure the test runner by including the `EXT_TESTS` option when configuring
 the project using CMake.
 
-```
+```sh
 cmake [...] -DEXT_TESTS=ON
 ```
 
@@ -14,8 +14,8 @@ cmake [...] -DEXT_TESTS=ON
 Test files can be run using the compiled test runner, compiled as the `test`
 executable. Test files can then be passed in using the `-f` flag.
 
-```
-test -ftest1 --file=test2
+```sh
+test -f test1 --file test2
 ```
 
 Test files are compiled C binaries that are written using the `testing.h`
@@ -28,7 +28,7 @@ A standard test file should be comprised of:
 The include directive for this testing header file, which is found under the
 `include/extension_tests` directory.
 
-```
+```c
 #include "std/testing.h"
 ```
 
@@ -36,7 +36,7 @@ A set of test functions. Test functions are functions that are defined using the
 test macros in `testing.h`, and are _registered_ in the test files main function.
 Test functions can be added with the TEST macro:
 
-```
+```c
 TEST(test_name) { ... }
 ```
 
@@ -46,18 +46,21 @@ The body of a testing function is written using verification macros provided by
 `testing.h`.
 A simple test function might look like this:
 
-```
+```c
 TEST(testAddFunction) {
  int act = add(3, 2);
  IS_TRUE(act == 5);
 }
 ```
 
+Test functions should contain at least one verification macro (see `testing.h`). 
+Running registered tests without any verification macros is undefined behaviour.
+
 The main function initializes the test data using `INIT()`, registers the defined
 tests using `RUN(test)` or `SKIP(test)`, then sends the test data back to the runner using
 `CONCLUDE()`. A main function should generally look like this:
 
-```
+```c
 int main() {
  INIT();
 
