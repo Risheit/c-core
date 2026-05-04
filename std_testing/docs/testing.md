@@ -61,8 +61,8 @@ tests using `RUN(test)` or `SKIP(test)`, then sends the test data back to the ru
 `CONCLUDE()`. A main function should generally look like this:
 
 ```c
-int main() {
- INIT();
+int main(int argc, char **argv) {
+ INIT(argc, argv);
 
  RUN(test1);
  RUN(test2);

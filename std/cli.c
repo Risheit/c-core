@@ -120,6 +120,24 @@ std_string std_cli_get_arg(std_argument opt, int argc, const char **argv) {
   return cli_get_arg_t(&g_opt_cur, &g_is_args_region, opt, argc, argv);
 }
 
+bool std_cli_has_arg_t(int *opt_cur, bool *is_args_region, std_argument opt,
+                       int argc, const char **argv) {
+  std_assert(opt.type == ARG_OPTION, "Parmater passed in was not an option");
+
+  std_string val =
+      cli_get_arg_t(&g_opt_cur, &g_is_args_region, opt, argc, argv);
+  if (std_str_is_empty(val)) {
+    return false;
+  }
+
+  (*opt_cur)--; // Argument found, walk back to previous option
+  return true;
+}
+
+bool std_cli_has_arg(std_argument opt, int argc, const char **argv) {
+  return std_cli_has_arg_t(&g_opt_cur, &g_is_args_region, opt, argc, argv);
+}
+
 void std_cli_argv_reset() {
   g_opt_cur = 1;
   g_is_args_region = false;

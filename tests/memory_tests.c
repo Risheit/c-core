@@ -14,7 +14,7 @@ TEST(init_basic_arena) {
   PASS_TEST(); // Expect no panic.
 }
 
-TEST(init_zero_arena) {
+TEST(resize_zero_arena) {
   std_arena *arena = std_arena_create(0, 0);
 
   IS_TRUE(std_arena_size(arena) == 0);
@@ -28,24 +28,31 @@ TEST(init_dynamic_arena) {
   std_arena *arena = std_arena_create(arena_size, 0);
 
   void *alloc = std_arena_alloc(arena, arena_size);
-  std_memset(alloc, 0, arena_size); // Test allocation
+  std_memset(alloc, 0xDD, arena_size); // Test allocation
   std_arena_destroy(arena);
   PASS_TEST();
 }
 
 TEST(init_static_arena) {
+  const int arena_size = 200;
   byte *buf[200];
-  std_arena *arena = std_arena_create_s(buf, 200, 0);
+  std_memset(buf, 0xCC, arena_size);
+
+  std_arena *arena = std_arena_create_s(buf, arena_size, 0);
+  void *alloc = std_arena_alloc(arena, 100);
+  std_memset(alloc, 0xDD, arena_size - ARENA_META_SIZE);
+
+  IS_TRUE(std_arena_size(arena) == arena_size - ARENA_META_SIZE); // No resize
   std_arena_destroy(arena);
-  PASS_TEST();
 }
 
-int main() {
-  INIT();
+int main(int argc, char **argv) {
+  INIT(argc, argv);
 
+  RUN(init_dynamic_arena);
   RUN(init_basic_arena);
-  // RUN(init_dynamic_arena);
-  // RUN(init_static_arena);
+  RUN(init_static_arena);
+  RUN(resize_zero_arena);
 
   CONCLUDE();
 }

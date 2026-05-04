@@ -56,14 +56,15 @@ static bool alloc_mem_page(mem_page **page, size_t size) {
     return true;
   }
 
-  byte *backing_memory = malloc(BASE_MEM_PAGE_OFFSET + size);
+  size_t page_size = BASE_MEM_PAGE_OFFSET + size + align_forward(size);
+  byte *backing_memory = malloc(page_size);
 
   if (backing_memory == nullptr) {
     return false;
   }
 
   mem_page *new_page = (mem_page *)backing_memory;
-  new_page->size = size + BASE_MEM_PAGE_OFFSET;
+  new_page->size = page_size;
   new_page->offset = BASE_MEM_PAGE_OFFSET;
   new_page->next_page = nullptr;
   new_page->memory = backing_memory;
@@ -87,7 +88,7 @@ std_arena *std_arena_create(size_t size, std_arena_flags flags) {
     std_panic("Unable to allocate space for arena");
   }
 
-  arena->size = size;
+  arena->size = arena->first_page ? arena->first_page->size : 0;
   arena->cur_page = arena->first_page;
   arena->iflags = IS_ALLOCATED;
 
@@ -107,7 +108,7 @@ std_arena *std_arena_create_s(void *memory, size_t size,
   std_arena *arena = (std_arena *)memory;
   arena->size = backing_memory_size;
   arena->flags = flags;
-  arena->first_page = (mem_page *)(memory + sizeof(arena));
+  arena->first_page = (mem_page *)((byte *)memory + sizeof(std_arena));
 
   arena->first_page->size = backing_memory_size;
   arena->first_page->offset = BASE_MEM_PAGE_OFFSET;
@@ -116,7 +117,7 @@ std_arena *std_arena_create_s(void *memory, size_t size,
   // This won't be freed, so we're good to not point to the start of
   // the allocated memory. We keep the offset the same with dynamic
   // arenas to avoid special cases when cleaning arenas.
-  arena->first_page->memory = memory + sizeof(arena);
+  arena->first_page->memory = (byte *)memory + sizeof(std_arena);
 
   arena->cur_page = arena->first_page;
   arena->iflags = IS_STACK | IS_ALLOCATED;
@@ -149,9 +150,9 @@ void std_arena_destroy(std_arena *arena) {
 static bool resize(std_arena *arena, size_t min_size) {
   std_assert(!(arena->flags & ARENA_STOP_RESIZE),
              "Attempted to resize invalid arena");
-  std_assert(arena->iflags & IS_STACK,
+  std_assert(!(arena->iflags & IS_STACK),
              "Attempted to resize externally-managed arena");
-  std_assert(!(arena->iflags & IS_ALLOCATED),
+  std_assert(arena->iflags & IS_ALLOCATED,
              "Attempted to resize unallocated arena");
 
   mem_page *page = arena->cur_page;
@@ -193,29 +194,24 @@ static bool resize(std_arena *arena, size_t min_size) {
 void *std_arena_alloc(std_arena *arena, size_t size) {
   std_assert(std_arena_is_allocated(arena), "arena memory must exist");
 
-  bool panic_on_alloc_fail = !(arena->flags & ARENA_CONT_ON_ALLOC_FAIL);
   size_t alloc_amt = align_forward(size) + size;
 
   // Resize if necessary and allowed
-  if (arena->cur_page == nullptr ||
-      arena->cur_page->size < alloc_amt + arena->cur_page->offset) {
-    if (!(arena->flags & ARENA_STOP_RESIZE)) {
-      if (!resize(arena, alloc_amt)) {
-        if (panic_on_alloc_fail)
-          std_panic("Failed to allocate %zu bytes", size);
-        else
-          return nullptr;
-      }
-    } else {
+  mem_page *page = arena->cur_page;
+  if (page == nullptr || page->size < alloc_amt + page->offset) {
+    bool stop_resize = arena->flags & ARENA_STOP_RESIZE;
+    bool panic_on_alloc_fail = !(arena->flags & ARENA_CONT_ON_ALLOC_FAIL);
+
+    if (stop_resize || !resize(arena, alloc_amt)) {
       if (panic_on_alloc_fail)
         std_panic("Failed to allocate %zu bytes", size);
-      else
-        return nullptr;
+
+      return nullptr;
     }
   }
 
   // Allocate pointer
-  mem_page *page = arena->cur_page;
+  page = arena->cur_page; // Cur page may have changed on resize
   void *data = page->memory + page->offset;
   page->offset += size + align_forward(size);
 
@@ -238,8 +234,6 @@ bool std_arena_is_allocated(std_arena *arena) {
   return arena->iflags & IS_ALLOCATED;
 }
 
-size_t std_arena_size(std_arena *arena) {
-  return arena->size;
-}
+size_t std_arena_size(std_arena *arena) { return arena->size; }
 
 void std_memset(void *buf, int val, size_t size) { memset(buf, val, size); }

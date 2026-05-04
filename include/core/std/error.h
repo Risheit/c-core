@@ -26,14 +26,20 @@ int std_printf(const char *restrict format, ...)
  */
 [[noreturn]] void std_abort();
 
+typedef void (*abort_hook)(void);
+
+/**
+ * Replaces the current [std_abort] function with a different abort function,
+ * returning the previous function.
+ *
+ * This function is not thread-safe. Abort functions must not return.
+ */
+abort_hook std_set_abort_hook(abort_hook hook);
+
 #ifdef __builtin_expect
 #define _std_builtin_expect(e, v) __builtin_expect((e), (v))
 #else
 #define _std_builtin_expect(e, v) (e)
-#endif
-
-#ifndef _std_hook_abort
-#define _std_hook_abort abort
 #endif
 
 #ifndef NDEBUG

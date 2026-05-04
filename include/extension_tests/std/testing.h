@@ -6,6 +6,12 @@
  */
 #pragma once
 
+#include "std/error.h" // IWYU pragma: keep
+#include <setjmp.h>
+#include <signal.h>
+#include <stdbool.h>
+#include <stdint.h>
+
 #define _TEST_STRINGIFY(Val) #Val
 #define _TEST_TO_STRING(Val) _TEST_STRINGIFY(Val)
 #define _TEST_ASSERT_DEFINED(f)                                                \
@@ -72,21 +78,12 @@
     }                                                                          \
   } while (0)
 
-#define _std_test_abort()                                                      \
-  do {                                                                         \
-    TEST_DNAME->state = testing_FAILED;                                        \
-    TEST_DNAME->failed++;                                                      \
-    TEST_DNAME->message =                                                      \
-        "line " _TEST_TO_STRING(__LINE__) ": code panicked.";                  \
-    return;                                                                    \
-  } while (0)
-
 /* Registration Macros */
 
 /**
  * Initializes standard information about this test file.
  */
-#define INIT()                                                                 \
+#define INIT(argc, argv)                                                       \
   _std_test_data TEST_DNAME;                                                   \
   do {                                                                         \
     TEST_DNAME.failed = 0;                                                     \
@@ -94,6 +91,7 @@
     TEST_DNAME.skipped = 0;                                                    \
     TEST_DNAME.message = "";                                                   \
     TEST_DNAME.state = testing_NOT_RUN;                                        \
+    TEST_DNAME.is_verbose = (argc) > 1 && (argv)[1][0] == 'v';                 \
     std_eprintf("Running tests for " __FILE__ ":\n");                          \
   } while (0)
 
@@ -103,12 +101,24 @@
 #define RUN(testname)                                                          \
   _TEST_ASSERT_DEFINED(testname);                                              \
   do {                                                                         \
-    TEST_DNAME.run++;                                                          \
-    testname(&TEST_DNAME);                                                     \
-    if (TEST_DNAME.state == testing_FAILED) {                                  \
-      std_eprintf(#testname ":\n\t%s\n", TEST_DNAME.message);                  \
+    abort_hook old_abort = std_set_abort_hook(_std_test_abort);                \
+    sig_t old_sigsegv = signal(SIGSEGV, _std_sigsegv_handler);                 \
+    if (setjmp(_std_test_jmp) == 0) {                                          \
+      TEST_DNAME.run++;                                                        \
+      if (TEST_DNAME.is_verbose) {                                             \
+        std_eprintf("Running " #testname "\n");                                \
+      }                                                                        \
+      testname(&TEST_DNAME);                                                   \
+      if (TEST_DNAME.state == testing_FAILED) {                                \
+        std_eprintf(#testname ": %s\n", TEST_DNAME.message);                   \
+      }                                                                        \
+    } else {                                                                   \
+      TEST_DNAME.failed++;                                                     \
+      std_eprintf(#testname ": Encountered an exception.\n");                  \
     }                                                                          \
     TEST_DNAME.state = testing_NOT_RUN;                                        \
+    std_set_abort_hook(old_abort);                                             \
+    signal(SIGSEGV, old_sigsegv);                                              \
   } while (0)
 
 /**
@@ -128,7 +138,7 @@
  */
 #define CONCLUDE()                                                             \
   do {                                                                         \
-    std_eprintf("%d/%d failed tests (%d skipped).\n\n", TEST_DNAME.failed,     \
+    std_eprintf("\n%d/%d failed tests (%d skipped).\n\n", TEST_DNAME.failed,   \
                 TEST_DNAME.run + TEST_DNAME.skipped, TEST_DNAME.skipped);      \
     return TEST_DNAME.failed;                                                  \
   } while (0)
@@ -139,12 +149,6 @@
  */
 #define TEST(testname) void testname(_std_test_data *TEST_DNAME)
 
-#define _std_hook_abort _std_test_abort // Overwrite abort() calls in error.h
-
-#include "std/error.h" // IWYU pragma: keep
-#include <stdbool.h>
-#include <stdint.h>
-
 typedef enum _std_test_state {
   testing_PASSED,
   testing_FAILED,
@@ -152,9 +156,23 @@ typedef enum _std_test_state {
 } _std_test_state;
 
 typedef struct _std_test_data {
+  bool is_verbose;
   int32_t failed;
   int32_t run;
   int32_t skipped;
   const char *message;
   _std_test_state state;
 } _std_test_data;
+
+static jmp_buf _std_test_jmp;
+
+[[noreturn]]
+static inline void _std_test_abort() {
+  longjmp(_std_test_jmp, 1);
+}
+
+[[noreturn]]
+static inline void _std_sigsegv_handler(int sig) {
+  psignal(sig, "Test");
+  longjmp(_std_test_jmp, 2);
+}

@@ -65,9 +65,10 @@ std_argument std_cli_argv_next(int argc, const char **argv);
  * Attempts to get the next argument for a previous option parsed [opt] using
  * [std_cli_argv_next], returning an empty string if no argument exists. This
  * function should only be called directly after a [std_cli_argv_next] call
- * that has parsed the option [opt], and not after an succeeding
+ * that has parsed the option [opt], and not after any succeeding
  * [std_cli_argv_next] calls. It should not be called if the option [opt] cannot
- * have an argument.
+ * have an argument, instead use [std_cli_has_arg] to check if an option has
+ * been given an invalid argument.
  *
  * The following methods are valid when recognizing arguments:
  * * [-farg] or [-f arg] provide the argument [arg] to the flag [-f].
@@ -77,6 +78,22 @@ std_argument std_cli_argv_next(int argc, const char **argv);
  * Undefined behaviour if [opt] isn't an option.
  */
 std_string std_cli_get_arg(std_argument opt, int argc, const char **argv);
+
+/**
+ * Returns true if a previous option parsed [opt] using [std_cli_argv_next] has
+ * an argument. This function should only be called directly after a
+ * [std_cli_argv_next] call that has parsed the option [opt] and not after an
+ * that has parsed the option [opt], and not after any succeeding
+ * [std_cli_argv_next] calls.
+ *
+ * The following methods are valid when recognizing arguments:
+ * * [-farg] or [-f arg] provide the argument [arg] to the flag [-f].
+ * * [--long=arg] or [--long arg] provide the argument [arg] to the flag
+ * [--long].
+ *
+ * Undefined behaviour if [opt] isn't an option.
+ */
+bool std_cli_has_arg(std_argument opt, int argc, const char **argv);
 
 /**
  * Resets the state of argument parsing. Calling [next_argv] after calling this

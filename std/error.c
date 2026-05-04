@@ -1,7 +1,10 @@
 #include "std/error.h"
 
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+void (*g_abort_hook)(void) = abort;
 
 void std_errno_msg(const char *msg) { perror(msg); }
 
@@ -26,8 +29,8 @@ std_printf(const char *restrict format, ...) {
 }
 
 [[noreturn]] void _std_builtin_assert(const char *filename, const char *func,
-                                   int line, int expr, const char *err,
-                                   const char *format, ...) {
+                                      int line, int expr, const char *err,
+                                      const char *format, ...) {
   std_eprintf("Assertion failed: function %s, file %s, line %d\n%s: ", func,
               filename, line, err);
 
@@ -36,7 +39,8 @@ std_printf(const char *restrict format, ...) {
   int ret = vfprintf(stderr, format, args);
   va_end(args);
   fprintf(stderr, ".\n");
-  abort();
+  g_abort_hook();
+  unreachable();
 }
 
 [[noreturn]] void _std_builtin_panic(const char *filename, const char *func,
@@ -48,9 +52,17 @@ std_printf(const char *restrict format, ...) {
   int ret = vfprintf(stderr, format, args);
   va_end(args);
   fprintf(stderr, ".\n");
-  _std_hook_abort();
+  g_abort_hook();
+  unreachable();
 }
 
 [[noreturn]] void std_abort() {
-  _std_hook_abort();
+  g_abort_hook();
+  unreachable();
+}
+
+abort_hook std_set_abort_hook(abort_hook hook) {
+  abort_hook old_hook = g_abort_hook;
+  g_abort_hook = hook;
+  return old_hook;
 }
