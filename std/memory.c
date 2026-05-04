@@ -192,7 +192,7 @@ static bool resize(std_arena *arena, size_t min_size) {
 }
 
 void *std_arena_alloc(std_arena *arena, size_t size) {
-  std_assert(std_arena_is_allocated(arena), "arena memory must exist");
+  std_assert(arena->iflags & IS_ALLOCATED, "Arena must be allocated");
 
   size_t alloc_amt = align_forward(size) + size;
 
@@ -219,6 +219,8 @@ void *std_arena_alloc(std_arena *arena, size_t size) {
 }
 
 void std_arena_clean(std_arena *arena) {
+  std_assert(arena->iflags & IS_ALLOCATED, "Arena must be allocated");
+
   mem_page *cur_page = arena->first_page;
 
   // Cleans don't deallocate data, they just reset all offsets
@@ -234,6 +236,9 @@ bool std_arena_is_allocated(std_arena *arena) {
   return arena->iflags & IS_ALLOCATED;
 }
 
-size_t std_arena_size(std_arena *arena) { return arena->size; }
+size_t std_arena_size(std_arena *arena) {
+  std_assert(arena->iflags & IS_ALLOCATED, "Arena must be allocated");
+  return arena->size;
+}
 
 void std_memset(void *buf, int val, size_t size) { memset(buf, val, size); }

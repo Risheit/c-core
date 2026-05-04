@@ -78,6 +78,24 @@
     }                                                                          \
   } while (0)
 
+#define IS_PANIC(expression)                                                   \
+  do {                                                                         \
+    abort_hook old_abort = std_set_abort_hook(_std_accept_except_abort);       \
+    if (setjmp(_std_accept_except_jmp) == 0) {                                 \
+      expression;                                                              \
+      TEST_DNAME->state = testing_FAILED;                                      \
+      TEST_DNAME->failed++;                                                    \
+      TEST_DNAME->message =                                                    \
+          "line " _TEST_TO_STRING(__LINE__) ": " #expression                   \
+                                            " was true when expected false";   \
+      std_set_abort_hook(old_abort);                                           \
+      return;                                                                  \
+    } else {                                                                   \
+      std_set_abort_hook(old_abort);                                           \
+      TEST_DNAME->state = testing_PASSED;                                      \
+    }                                                                          \
+  } while (0)
+
 /* Registration Macros */
 
 /**
@@ -165,10 +183,17 @@ typedef struct _std_test_data {
 } _std_test_data;
 
 static jmp_buf _std_test_jmp;
+static jmp_buf _std_accept_except_jmp;
 
 [[noreturn]]
 static inline void _std_test_abort() {
   longjmp(_std_test_jmp, 1);
+}
+
+[[noreturn]]
+static inline void _std_accept_except_abort() {
+  std_eprintf("Exception accepted.\n");
+  longjmp(_std_accept_except_jmp, 1);
 }
 
 [[noreturn]]
