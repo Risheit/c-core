@@ -69,25 +69,25 @@ void std_file_close(std_file *file);
  */
 std_string std_file_read_line(std_arena *restrict arena,
                               std_file *restrict file);
+/**
+ * Returns a sized pointer containing at most [n] items of [size] bytes each
+ * read from [file] with semantics equivalent to [fread]. The size of the
+ * returned pointer is equal to the number of bytes read ([n] * [size]). The
+ * pointer is allocated into [arena]. On a failure, errno is set as specified by
+ * [fread], and [file] is marked with the relevant error number. On a read of
+ * EOF, all available items are written, and [file] is marked with [FERR_EOF].
+ */
+std_szptr std_file_read(std_file *file, std_arena *arena, size_t n,
+                        size_t size);
 
 /**
- * Reads [n] bytes each read from [file] into [ptr]. On a failure, an error
- * string is returned, errno is set as specified by [fread], and [file] is
- * marked with the relevant error number. On a read of EOF, all available items
- * are written, and [file] is marked with [FERR_EOF]. The function returns the
- * number of bytes read. This might be smaller than [n] if the end of file was
- * reached.
+ * Writes [n] bytes to [file], each of size [size] from memory region [ptr],
+ * with semantics equivalent to [fwrite]. If an error occurs and less than [n]
+ * items are written to the file, then [file] is marked with [FERR_WRITE].
+ * Returns the number of items written.
  */
-size_t std_file_readb(void *restrict ptr, std_file *restrict file, size_t n);
-
-/**
- * Writes [n] bytes to [file], each of size [size] from memory [ptr], with
- * semantics equivalent to [fwrite]. If an error occurs and less than [n] items
- * are written to the file, then [file] is marked with [FERR_WRITE]. Returns the
- * number of bytes written.
- */
-size_t std_file_writeb(const void *restrict ptr, size_t n,
-                       std_file *restrict file);
+size_t std_file_write(std_file *restrict file, const void *restrict ptr,
+                       size_t n, size_t size);
 
 /**
  * Flushes any buffered I/O to [file] with semantics equivalent to [fflush]. If

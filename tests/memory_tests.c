@@ -4,7 +4,7 @@
 
 void *test_alloc(std_arena *arena, size_t size) {
   void *ptr = std_arena_alloc(arena, size);
-  std_memset(ptr, 0xDD, size);
+  std_memset((std_szptr){.ptr = ptr, .size = size}, 0xDD);
   return ptr;
 }
 
@@ -38,7 +38,7 @@ TEST(init_dynamic_arena) {
 TEST(init_static_arena) {
   const int arena_size = 200;
   byte *buf[200];
-  std_memset(buf, 0xCC, arena_size);
+  std_memset((std_szptr){.ptr = buf, .size = arena_size}, 0xCC);
 
   std_arena *arena = std_arena_create_s(buf, arena_size, 0);
   test_alloc(arena, arena_size / 2); // Allocate within arena size

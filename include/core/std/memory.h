@@ -5,6 +5,21 @@
 #include <stddef.h>
 #include <stdint.h>
 
+/**
+ * Sized void pointer type.
+ */
+typedef struct std_sized_ptr {
+  void *ptr;
+  size_t size;
+} std_szptr;
+
+/**
+ * Runs the [memset] standard library function.
+ */
+void std_memset(std_szptr buf, int val);
+
+/** Arenas */
+
 #ifndef ARENA_ALIGN
 
 /**
@@ -158,10 +173,5 @@ void std_arena_clean(std_arena *arena);
 bool std_arena_is_allocated(std_arena *arena);
 
 size_t std_arena_size(std_arena *arena);
-
-/**
- * Runs the [memset] standard library function.
- */
-void std_memset(void *buf, int val, size_t size);
 
 #endif // STD_MEMORY_H

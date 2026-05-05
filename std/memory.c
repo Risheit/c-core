@@ -241,4 +241,4 @@ size_t std_arena_size(std_arena *arena) {
   return arena->size;
 }
 
-void std_memset(void *buf, int val, size_t size) { memset(buf, val, size); }
+void std_memset(std_szptr buf, int val) { memset(buf.ptr, val, buf.size); }
