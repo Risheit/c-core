@@ -16,12 +16,6 @@ int std_eprintf(const char *restrict format, ...)
     __attribute__((format(printf, 1, 2)));
 
 /**
- * Prints formatted output to standard output.
- */
-int std_printf(const char *restrict format, ...)
-    __attribute__((format(printf, 1, 2)));
-
-/**
  * Aborts the program.
  */
 [[noreturn]] void std_abort();

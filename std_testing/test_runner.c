@@ -15,6 +15,7 @@
 
 #include "std/cli.h"
 #include "std/error.h"
+#include "std/io.h"
 #include "std/memory.h"
 #include "std/strings.h"
 #include <limits.h>

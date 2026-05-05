@@ -18,16 +18,6 @@ std_eprintf(const char *restrict format, ...) {
   return ret;
 }
 
-__attribute__((format(printf, 1, 2))) int
-std_printf(const char *restrict format, ...) {
-  va_list args;
-  va_start(args, format);
-  int ret = vfprintf(stderr, format, args);
-  va_end(args);
-
-  return ret;
-}
-
 [[noreturn]] void _std_builtin_assert(const char *filename, const char *func,
                                       int line, int expr, const char *err,
                                       const char *format, ...) {

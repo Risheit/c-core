@@ -112,11 +112,11 @@ std_string std_file_read_line(std_arena *restrict arena,
   return std_str_create(arena, line);
 }
 
-size_t std_file_read(void *restrict ptr, std_file *restrict file, size_t n) {
+size_t std_file_readb(void *restrict ptr, std_file *restrict file, size_t n) {
   std_nonnull(file);
   ACTIVE(*file);
 
-  size_t amt = fread(ptr, n, 1, file->handle);
+  size_t amt = fread(ptr, 1, n, file->handle);
 
   // Failed to read line
   if (amt < n) {
@@ -130,13 +130,13 @@ size_t std_file_read(void *restrict ptr, std_file *restrict file, size_t n) {
   return amt;
 }
 
-size_t std_file_write(const void *restrict ptr, size_t size, size_t n,
-                      std_file *restrict file) {
+size_t std_file_writeb(const void *restrict ptr, size_t n,
+                       std_file *restrict file) {
   std_nonnull(ptr);
   std_nonnull(file);
   ACTIVE(*file);
 
-  size_t write = fwrite(ptr, size, n, RAW(*file));
+  size_t write = fwrite(ptr, 1, n, RAW(*file));
   if (write < n) {
     file->err = FERR_WRITE;
   }
@@ -207,4 +207,14 @@ void std_file_reset_err(std_file *file) {
 bool std_file_is_active(const std_file *file) {
   std_nonnull(file);
   return file->active;
+}
+
+__attribute__((format(printf, 1, 2))) int
+std_printf(const char *restrict format, ...) {
+  va_list args;
+  va_start(args, format);
+  int ret = vfprintf(stdout, format, args);
+  va_end(args);
+
+  return ret;
 }

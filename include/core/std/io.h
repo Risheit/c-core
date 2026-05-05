@@ -78,16 +78,16 @@ std_string std_file_read_line(std_arena *restrict arena,
  * number of bytes read. This might be smaller than [n] if the end of file was
  * reached.
  */
-size_t std_file_read(void *restrict ptr, std_file *restrict file, size_t n);
+size_t std_file_readb(void *restrict ptr, std_file *restrict file, size_t n);
 
 /**
- * Writes [n] items to [file], each of size [size] from memory [ptr], with
+ * Writes [n] bytes to [file], each of size [size] from memory [ptr], with
  * semantics equivalent to [fwrite]. If an error occurs and less than [n] items
  * are written to the file, then [file] is marked with [FERR_WRITE]. Returns the
- * number of items written.
+ * number of bytes written.
  */
-size_t std_file_write(const void *restrict ptr, size_t size, size_t n,
-                      std_file *restrict file);
+size_t std_file_writeb(const void *restrict ptr, size_t n,
+                       std_file *restrict file);
 
 /**
  * Flushes any buffered I/O to [file] with semantics equivalent to [fflush]. If
@@ -153,5 +153,11 @@ void std_file_reset_err(std_file *file);
  * nothing, and mark the file with an error of [FERR_INACTIVE].
  */
 bool std_file_is_active(const std_file *file);
+
+/**
+ * Prints formatted output to standard output.
+ */
+int std_printf(const char *restrict format, ...)
+    __attribute__((format(printf, 1, 2)));
 
 #endif // STD_IO_H
