@@ -81,6 +81,7 @@
 #define IS_PANIC(expression)                                                   \
   do {                                                                         \
     abort_hook old_abort = std_set_abort_hook(_std_accept_except_abort);       \
+    exit_hook old_exit = std_set_exit_hook(_std_accept_except_exit);           \
     if (setjmp(_std_accept_except_jmp) == 0) {                                 \
       expression;                                                              \
       TEST_DNAME->state = testing_FAILED;                                      \
@@ -89,9 +90,11 @@
           "line " _TEST_TO_STRING(__LINE__) ": " #expression                   \
                                             " was true when expected false";   \
       std_set_abort_hook(old_abort);                                           \
+      std_set_exit_hook(old_exit);                                             \
       return;                                                                  \
     } else {                                                                   \
       std_set_abort_hook(old_abort);                                           \
+      std_set_exit_hook(old_exit);                                             \
       TEST_DNAME->state = testing_PASSED;                                      \
     }                                                                          \
   } while (0)
@@ -120,6 +123,7 @@
   _TEST_ASSERT_DEFINED(testname);                                              \
   do {                                                                         \
     abort_hook old_abort = std_set_abort_hook(_std_test_abort);                \
+    exit_hook old_exit = std_set_exit_hook(_std_test_exit);                    \
     sig_t old_sigsegv = signal(SIGSEGV, _std_sigsegv_handler);                 \
     if (setjmp(_std_test_jmp) == 0) {                                          \
       TEST_DNAME.run++;                                                        \
@@ -136,6 +140,7 @@
     }                                                                          \
     TEST_DNAME.state = testing_NOT_RUN;                                        \
     std_set_abort_hook(old_abort);                                             \
+    std_set_exit_hook(old_exit);                                               \
     signal(SIGSEGV, old_sigsegv);                                              \
   } while (0)
 
@@ -191,9 +196,19 @@ static inline void _std_test_abort() {
 }
 
 [[noreturn]]
+static inline void _std_test_exit([[maybe_unused]] int code) {
+  _std_test_abort();
+}
+
+[[noreturn]]
 static inline void _std_accept_except_abort() {
   std_eprintf("Exception accepted.\n");
   longjmp(_std_accept_except_jmp, 1);
+}
+
+[[noreturn]]
+static inline void _std_accept_except_exit([[maybe_unused]] int code) {
+  _std_accept_except_abort();
 }
 
 [[noreturn]]

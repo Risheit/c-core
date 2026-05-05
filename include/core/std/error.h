@@ -20,7 +20,15 @@ int std_eprintf(const char *restrict format, ...)
  */
 [[noreturn]] void std_abort();
 
+/**
+ * Exits the program with [code].
+ */
+
+[[noreturn]] void std_exit(int code);
+
 typedef void (*abort_hook)(void);
+
+typedef void (*exit_hook)(int);
 
 /**
  * Replaces the current [std_abort] function with a different abort function,
@@ -29,6 +37,14 @@ typedef void (*abort_hook)(void);
  * This function is not thread-safe. Abort functions must not return.
  */
 abort_hook std_set_abort_hook(abort_hook hook);
+
+/**
+ * Replaces the current [std_exit] function with a different exit function,
+ * returning the previous function.
+ *
+ * This function is not thread-safe. Exit functions must not return.
+ */
+exit_hook std_set_exit_hook(exit_hook hook);
 
 #ifdef __builtin_expect
 #define _std_builtin_expect(e, v) __builtin_expect((e), (v))

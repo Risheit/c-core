@@ -1,10 +1,12 @@
 #include "std/error.h"
 
+#include <__stddef_unreachable.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 void (*g_abort_hook)(void) = abort;
+void (*g_exit_hook)(int) = exit;
 
 void std_errno_msg(const char *msg) { perror(msg); }
 
@@ -51,8 +53,20 @@ std_eprintf(const char *restrict format, ...) {
   unreachable();
 }
 
+[[noreturn]] void std_exit(int code) {
+  g_exit_hook(code);
+  unreachable();
+}
+
 abort_hook std_set_abort_hook(abort_hook hook) {
   abort_hook old_hook = g_abort_hook;
   g_abort_hook = hook;
   return old_hook;
 }
+
+exit_hook std_set_exit_hook(exit_hook hook) {
+  exit_hook old_hook = g_exit_hook;
+  g_exit_hook = hook;
+  return old_hook;
+}
+
