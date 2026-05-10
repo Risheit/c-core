@@ -15,7 +15,7 @@
 #define _TEST_STRINGIFY(Val) #Val
 #define _TEST_TO_STRING(Val) _TEST_STRINGIFY(Val)
 #define _TEST_ASSERT_DEFINED(f)                                                \
-  static_assert(_Generic(&(f), __typeof__(&(f)): 1, default: 0),               \
+  static_assert(_Generic(&(f), typeof(&(f)): 1, default: 0),                   \
                 #f " is not defined")
 
 #define TEST_DNAME _std_test_data_main
@@ -117,9 +117,10 @@
   } while (0)
 
 /**
- * Runs the test function [testname] defined using the [TEST] macro.
+ * Runs the test function [testname] defined using the [TEST] macro with
+ * additional data defined as variadic arguments.
  */
-#define RUN(testname)                                                          \
+#define RUN(testname, ...)                                                     \
   _TEST_ASSERT_DEFINED(testname);                                              \
   do {                                                                         \
     abort_hook old_abort = std_set_abort_hook(_std_test_abort);                \
@@ -130,7 +131,7 @@
       if (TEST_DNAME.is_verbose) {                                             \
         std_eprintf("Running " #testname "\n");                                \
       }                                                                        \
-      testname(&TEST_DNAME);                                                   \
+      testname(&TEST_DNAME __VA_OPT__(, ) __VA_ARGS__);                        \
       if (TEST_DNAME.state == testing_FAILED) {                                \
         std_eprintf(#testname ": %s\n", TEST_DNAME.message);                   \
       }                                                                        \
@@ -168,9 +169,14 @@
 
 /**
  * Defines a test function named [testname]. Test function names should be valid
- * function names.
+ * function names. Optional auxiliary parameters can also be added into the
+ * test.
+ *
+ * Example:
+ *  TEST(allocateTest, std_arena *arena, int flag)
  */
-#define TEST(testname) void testname(_std_test_data *TEST_DNAME)
+#define TEST(testname, ...)                                                    \
+  void testname(_std_test_data *TEST_DNAME __VA_OPT__(, ) __VA_ARGS__)
 
 typedef enum _std_test_state {
   testing_PASSED,
@@ -187,8 +193,8 @@ typedef struct _std_test_data {
   _std_test_state state;
 } _std_test_data;
 
-static jmp_buf _std_test_jmp;
-static jmp_buf _std_accept_except_jmp;
+static jmp_buf _std_test_jmp; // Jumps buffer to avoid exceptions ending tests
+static jmp_buf _std_accept_except_jmp; // Jumps to handle [IS_PANIC] tests
 
 [[noreturn]]
 static inline void _std_test_abort() {
@@ -202,7 +208,7 @@ static inline void _std_test_exit([[maybe_unused]] int code) {
 
 [[noreturn]]
 static inline void _std_accept_except_abort() {
-  std_eprintf("Exception accepted.\n");
+  std_eprintf("-- Exception accepted.\n");
   longjmp(_std_accept_except_jmp, 1);
 }
 
