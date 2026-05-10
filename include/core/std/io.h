@@ -4,6 +4,7 @@
 #include "memory.h"
 #include "strings.h"
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 
 /**
@@ -59,6 +60,18 @@ std_file *std_file_temp(std_arena *arena);
 void std_file_close(std_file *file);
 
 /**
+ * Macro that automatically closes a [std_file] defined as [name] and
+ * initialized with [create_expr] after the end of scope.
+ *
+ * Example:
+ *  std_with_file(file, std_file_temp(arena)) { ... }
+ * Note: The scope is skipped if [create_expr] evaluates to nullptr.
+ */
+#define std_with_file(name, create_expr)                                       \
+  for (std_file *name = (create_expr); name != nullptr;                        \
+       std_file_close(name), name = nullptr)
+
+/**
  * Reads up to and including a newline character or EOF in [file]. On a failure,
  * an error string is returned, errno is set as specified by [fgetln], and
  * [file] is marked with the relevant error number. The string containing the
@@ -81,13 +94,22 @@ std_szptr std_file_read(std_file *file, std_arena *arena, size_t n,
                         size_t size);
 
 /**
+ * Reads at most [n] items of [size] bytes each read from [file] with semantics
+ * equivalent to [fread] into [ptr]. Returns the number of items actually read.
+ * On a failure, errno is set as specified by [fread], and [file] is marked with
+ * the relevant error number. On a read of EOF, all available items are written,
+ * and [file] is marked with [FERR_EOF].
+ */
+size_t std_file_readp(std_file *file, void *ptr, size_t n, size_t size);
+
+/**
  * Writes [n] bytes to [file], each of size [size] from memory region [ptr],
  * with semantics equivalent to [fwrite]. If an error occurs and less than [n]
  * items are written to the file, then [file] is marked with [FERR_WRITE].
  * Returns the number of items written.
  */
 size_t std_file_write(std_file *restrict file, const void *restrict ptr,
-                       size_t n, size_t size);
+                      size_t n, size_t size);
 
 /**
  * Flushes any buffered I/O to [file] with semantics equivalent to [fflush]. If

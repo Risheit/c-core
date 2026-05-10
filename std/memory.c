@@ -159,9 +159,8 @@ static bool resize(std_arena *arena, size_t min_size) {
 
   // Use existing allocated page if it exists.
   if (page != nullptr && page->next_page != nullptr) {
-    std_assert(page->next_page->offset == BASE_MEM_PAGE_OFFSET,
-               "Offset for cleaned page incorrectly set");
     arena->cur_page = page->next_page;
+    arena->cur_page->offset = BASE_MEM_PAGE_OFFSET; // Clean page for new memory
     return true;
   }
 
@@ -220,15 +219,6 @@ void *std_arena_alloc(std_arena *arena, size_t size) {
 
 void std_arena_clean(std_arena *arena) {
   std_assert(arena->iflags & IS_ALLOCATED, "Arena must be allocated");
-
-  mem_page *cur_page = arena->first_page;
-
-  // Cleans don't deallocate data, they just reset all offsets
-  // to base.
-  while (cur_page != nullptr) {
-    cur_page->offset = BASE_MEM_PAGE_OFFSET;
-    cur_page = cur_page->next_page;
-  }
   arena->cur_page = arena->first_page;
 }
 

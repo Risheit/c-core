@@ -31,7 +31,7 @@ target_link_libraries(${EXE_NAME} PRIVATE CCORE::std)
 4. Access standard library headers under the `std/` include flag:
 
 ```c
-#include <std/memory.h>
+#include "std/memory.h"
 ```
 
 ## Including the SDL3 extension.

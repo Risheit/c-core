@@ -97,10 +97,11 @@ typedef struct std_arena std_arena;
 std_arena *std_arena_create(size_t size, enum std_arena_flags flags);
 
 /**
- * Macro create a simple dynamic arena with initial capacity storing 4
- * [size_t] objects.
+ * Macro create a simple dynamic arena with no immediately allocated memory.
+ * The initial page size of the arena will be determined by our first allocation,
+ * allowing for less page waste.
  */
-#define std_dyn_arena() std_arena_create(4 * sizeof(size_t), 0)
+#define std_dyn_arena() std_arena_create(0, 0)
 
 /**
  * Initializes the arena [arena] with [size] bytes and [flags] flags,
@@ -136,6 +137,18 @@ std_arena *std_arena_create_s(void *memory, size_t size,
 void std_arena_destroy(std_arena *arena);
 
 /**
+ * Macro that automatically destroys an arena defined as [name] and initialized
+ * with [create_expr] after the end of scope.
+ *
+ * Example:
+ *  std_with_arena(arena, std_dyn_arena()) { ... }
+ * Note: The scope is skipped if [create_expr] evaluates to nullptr.
+ */
+#define std_with_arena(name, create_expr)                                      \
+  for (std_arena *name = (create_expr); name != nullptr;                       \
+       std_arena_destroy(name), name = nullptr)
+
+/**
  * Allocate a pointer of [size] bytes within the arena. If allocation fails,
  * this function panics, unless [CONTINUE_ON_ALLOC_FAILURE] is set, in which
  * case it returns [NULL].
@@ -158,7 +171,7 @@ void *std_arena_alloc(std_arena *arena, size_t size);
  *
  * Remarks:
  *
- * * Cleans are O(# of resizes performed) in performance.
+ * * Cleans are O(1) in performance.
  *
  * * Cleans do not reset dynamically expanded arenas to their original size.
  * Additional memory allocated by the arena will remain allocated until the

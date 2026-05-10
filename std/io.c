@@ -9,7 +9,6 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/syslimits.h>
 
 typedef struct std_file {
   FILE *handle;
@@ -118,6 +117,16 @@ std_szptr std_file_read(std_file *file, std_arena *arena, size_t n,
   ACTIVE(*file);
 
   byte *ptr = std_arena_alloc(arena, n * size);
+  size_t amt = std_file_readp(file, ptr, n, size);
+
+  std_szptr read = {.ptr = ptr, .size = amt * size};
+  return read;
+}
+
+size_t std_file_readp(std_file *file, void *ptr, size_t n, size_t size) {
+  std_nonnull(file);
+  ACTIVE(*file);
+
   size_t amt = fread(ptr, size, n, file->handle);
 
   // Failed to read line
@@ -129,8 +138,7 @@ std_szptr std_file_read(std_file *file, std_arena *arena, size_t n,
     }
   }
 
-  std_szptr read = {.ptr = ptr, .size = amt * size};
-  return read;
+  return amt;
 }
 
 size_t std_file_write(std_file *restrict file, const void *restrict ptr,

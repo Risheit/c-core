@@ -1,6 +1,5 @@
 #include "std/error.h"
 
-#include <__stddef_unreachable.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
