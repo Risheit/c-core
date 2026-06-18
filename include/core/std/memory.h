@@ -149,6 +149,11 @@ void std_arena_destroy(std_arena *arena);
        std_arena_destroy(name), name = nullptr)
 
 /**
+ * Exits a scope early and automatically cleans up.
+ */
+#define exit_scope continue
+
+/**
  * Allocate a pointer of [size] bytes within the arena. If allocation fails,
  * this function panics, unless [CONTINUE_ON_ALLOC_FAILURE] is set, in which
  * case it returns [NULL].
