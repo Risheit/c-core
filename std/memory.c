@@ -231,4 +231,14 @@ size_t std_arena_size(std_arena *arena) {
   return arena->size;
 }
 
+std_szptr std_null_szptr() { return (std_szptr){.ptr = nullptr, .size = 0}; }
+
 void std_memset(std_szptr buf, int val) { memset(buf.ptr, val, buf.size); }
+
+int std_memcmp(std_szptr a, std_szptr b) {
+  if (a.size != b.size) {
+    return a.size > b.size ? 1 : -1;
+  }
+
+  return memcmp(a.ptr, b.ptr, a.size);
+}

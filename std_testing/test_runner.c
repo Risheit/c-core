@@ -73,7 +73,7 @@ int run_tests(test_node *head, test_opts opts) {
   }
 
   if (failed_tests == 0) {
-    std_printf("\nThere were no failing tests files!\n");
+    std_printf("\nAll tests passed!\n");
   } else {
     std_printf("\nIn total, there were %d failing test file(s).\n",
                failed_tests);

@@ -6,6 +6,12 @@
 #include <stdint.h>
 
 /**
+ * Convenience type of the smallest possible representation of data on a
+ * machine. This is a minimum of one byte, but may be greater on some machines.
+ */
+typedef uint_least8_t byte;
+
+/**
  * Sized void pointer type.
  */
 typedef struct std_sized_ptr {
@@ -13,10 +19,18 @@ typedef struct std_sized_ptr {
   size_t size;
 } std_szptr;
 
+std_szptr std_null_szptr();
+
 /**
  * Runs the [memset] standard library function.
  */
 void std_memset(std_szptr buf, int val);
+
+/**
+ * Runs the [memcmp] standard library function. Returns 0 if [a] and [b] are
+ * equal, a positive integer if [a] > [b], and a negative integer if [b] > [a].
+ */
+int std_memcmp(std_szptr a, std_szptr b);
 
 /** Arenas */
 
@@ -36,12 +50,6 @@ void std_memset(std_szptr buf, int val);
  * Metadata needed for an arena.
  */
 #define ARENA_META_SIZE ((size_t)64)
-
-/**
- * Convenience type of the smallest possible representation of data on a
- * machine. This is a minimum of one byte, but may be greater on some machines.
- */
-typedef uint_least8_t byte;
 
 typedef enum std_arena_flags {
   ARENA_STOP_RESIZE = 1 << 0,        // Stops this arena's backing memory
@@ -98,8 +106,8 @@ std_arena *std_arena_create(size_t size, enum std_arena_flags flags);
 
 /**
  * Macro create a simple dynamic arena with no immediately allocated memory.
- * The initial page size of the arena will be determined by our first allocation,
- * allowing for less page waste.
+ * The initial page size of the arena will be determined by our first
+ * allocation, allowing for less page waste.
  */
 #define std_dyn_arena() std_arena_create(0, 0)
 
