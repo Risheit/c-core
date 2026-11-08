@@ -148,7 +148,7 @@
 /**
  * Skips running the test function [testname].
  */
-#define SKIP(testname)                                                         \
+#define SKIP(testname, ...)                                                    \
   _TEST_ASSERT_DEFINED(testname);                                              \
   do {                                                                         \
     TEST_DNAME.skipped++;                                                      \
