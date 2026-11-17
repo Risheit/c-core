@@ -220,6 +220,7 @@ void *std_arena_alloc(std_arena *arena, size_t size) {
 void std_arena_clean(std_arena *arena) {
   std_assert(arena->iflags & IS_ALLOCATED, "Arena must be allocated");
   arena->cur_page = arena->first_page;
+  arena->cur_page->offset = BASE_MEM_PAGE_OFFSET;
 }
 
 bool std_arena_is_allocated(std_arena *arena) {

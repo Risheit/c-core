@@ -156,9 +156,9 @@ uint64_t std_file_size(std_file *file);
  *
  * Note: successful calls don't set the file error code to 0. If a previous
  * function sets an error code, that code will remain on the file until cleared
- * by the [file_reset_err] function. If a function does error, it overwrites the
+ * by the [std_file_reset_err] function. If a function does error, it overwrites the
  * previous error value on the file. If the error code of a function is
- * important, store or check the error code with [file_err] before calling
+ * important, store or check the error code with [std_file_err] before calling
  * another file function.
  */
 int std_file_err(const std_file *file);
