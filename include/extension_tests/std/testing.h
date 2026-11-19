@@ -7,6 +7,7 @@
 #pragma once
 
 #include "std/error.h" // IWYU pragma: keep
+#include <assert.h>    // IWYU pragma: keep
 #include <setjmp.h>
 #include <signal.h>
 #include <stdbool.h>
@@ -39,7 +40,6 @@
 #define FAIL_TEST(fail_message)                                                \
   do {                                                                         \
     TEST_DNAME->state = testing_FAILED;                                        \
-    TEST_DNAME->failed++;                                                      \
     TEST_DNAME->message = "line " _TEST_TO_STRING(__LINE__) ": " fail_message; \
     return;                                                                    \
   } while (0)
@@ -51,7 +51,6 @@
   do {                                                                         \
     if (!(expression)) {                                                       \
       TEST_DNAME->state = testing_FAILED;                                      \
-      TEST_DNAME->failed++;                                                    \
       TEST_DNAME->message =                                                    \
           "line " _TEST_TO_STRING(__LINE__) ": " #expression                   \
                                             " was false when expected true";   \
@@ -68,7 +67,6 @@
   do {                                                                         \
     if (expression) {                                                          \
       TEST_DNAME->state = testing_FAILED;                                      \
-      TEST_DNAME->failed++;                                                    \
       TEST_DNAME->message =                                                    \
           "line " _TEST_TO_STRING(__LINE__) ": " #expression                   \
                                             " was true when expected false";   \
@@ -78,25 +76,56 @@
     }                                                                          \
   } while (0)
 
+/**
+ * Causes the test to fail if the expression doesn't panic. Non-zero exits don't
+ * count as panics.
+ */
 #define IS_PANIC(expression)                                                   \
   do {                                                                         \
     abort_hook old_abort = std_set_abort_hook(_std_accept_except_abort);       \
-    exit_hook old_exit = std_set_exit_hook(_std_accept_except_exit);           \
-    if (setjmp(_std_accept_except_jmp) == 0) {                                 \
+    int val = setjmp(_std_accept_except_jmp);                                  \
+    if (val == 0) {                                                            \
       expression;                                                              \
-      TEST_DNAME->state = testing_FAILED;                                      \
-      TEST_DNAME->failed++;                                                    \
-      TEST_DNAME->message =                                                    \
-          "line " _TEST_TO_STRING(__LINE__) ": " #expression                   \
-                                            " was true when expected false";   \
+    } else if (val == -1) {                                                    \
+      if (TEST_DNAME->is_verbose) {                                            \
+        std_eprintf("> -- Expected panic occurred.\n");                        \
+      }                                                                        \
       std_set_abort_hook(old_abort);                                           \
-      std_set_exit_hook(old_exit);                                             \
+      TEST_DNAME->state = testing_PASSED;                                      \
       return;                                                                  \
-    } else {                                                                   \
-      std_set_abort_hook(old_abort);                                           \
+    }                                                                          \
+    TEST_DNAME->state = testing_FAILED;                                        \
+    TEST_DNAME->message =                                                      \
+        "line " _TEST_TO_STRING(__LINE__) ": " #expression                     \
+                                          " passed when expected panic";       \
+    std_set_abort_hook(old_abort);                                             \
+    return;                                                                    \
+  } while (0)
+
+/**
+ * Causes the test to fail if the expression doesn't exit with the non-zero exit
+ * code [code]. Panics don't count as non-zero exits.
+ */
+#define IS_NONZERO_EXIT(expression, code)                                      \
+  static_assert((code) != 0, "Exit code must be non-zero");                    \
+  do {                                                                         \
+    exit_hook old_exit = std_set_exit_hook(_std_accept_except_exit);           \
+    int val = setjmp(_std_accept_exit_jmp);                                    \
+    if (val == 0) {                                                            \
+      expression;                                                              \
+    } else if (val == -1) {                                                    \
+      if (TEST_DNAME->is_verbose) {                                            \
+        std_eprintf("> -- Expected non-zero exit occurred.\n");                \
+      }                                                                        \
       std_set_exit_hook(old_exit);                                             \
       TEST_DNAME->state = testing_PASSED;                                      \
+      return;                                                                  \
     }                                                                          \
+    TEST_DNAME->state = testing_FAILED;                                        \
+    TEST_DNAME->message = "line " _TEST_TO_STRING(                             \
+        __LINE__) ": " #expression " passed when expected non-zero exit";      \
+    std_set_exit_hook(old_exit);                                               \
+    return;                                                                    \
   } while (0)
 
 /* Registration Macros */
@@ -113,7 +142,7 @@
     TEST_DNAME.message = "";                                                   \
     TEST_DNAME.state = testing_NOT_RUN;                                        \
     TEST_DNAME.is_verbose = (argc) > 1 && (argv)[1][0] == 'v';                 \
-    std_eprintf("Running tests for " __FILE__ ":\n");                          \
+    std_eprintf("> Running tests for " __FILE__ ":\n");                        \
   } while (0)
 
 /**
@@ -126,18 +155,28 @@
     abort_hook old_abort = std_set_abort_hook(_std_test_abort);                \
     exit_hook old_exit = std_set_exit_hook(_std_test_exit);                    \
     sig_t old_sigsegv = signal(SIGSEGV, _std_sigsegv_handler);                 \
-    if (setjmp(_std_test_jmp) == 0) {                                          \
+    int val = setjmp(_std_test_jmp);                                           \
+    if (val == 0) {                                                            \
       TEST_DNAME.run++;                                                        \
       if (TEST_DNAME.is_verbose) {                                             \
-        std_eprintf("Running " #testname "\n");                                \
+        std_eprintf("> Running " #testname ".\n");                             \
       }                                                                        \
       testname(&TEST_DNAME __VA_OPT__(, ) __VA_ARGS__);                        \
-      if (TEST_DNAME.state == testing_FAILED) {                                \
-        std_eprintf(#testname ": %s\n", TEST_DNAME.message);                   \
-      }                                                                        \
-    } else {                                                                   \
+    } else if (val == 1) {                                                     \
+      TEST_DNAME.state = testing_FAILED;                                       \
+      TEST_DNAME.message = "Encountered panic";                                \
+    } else if (val == 2) {                                                     \
+      TEST_DNAME.state = testing_FAILED;                                       \
+      TEST_DNAME.message = "Exit with non-zero code";                          \
+    } else if (val == 3) {                                                     \
+      TEST_DNAME.state = testing_FAILED;                                       \
+      TEST_DNAME.message = "Encountered SIGSEGV";                              \
+    }                                                                          \
+    if (TEST_DNAME.state == testing_FAILED) {                                  \
       TEST_DNAME.failed++;                                                     \
-      std_eprintf(#testname ": Encountered an exception.\n");                  \
+      std_eprintf("> -- FAILED: %s.\n", TEST_DNAME.message);                   \
+    } else if (TEST_DNAME.is_verbose && TEST_DNAME.state == testing_PASSED) {  \
+      std_eprintf("> -- PASSED.\n");                                           \
     }                                                                          \
     TEST_DNAME.state = testing_NOT_RUN;                                        \
     std_set_abort_hook(old_abort);                                             \
@@ -195,6 +234,7 @@ typedef struct _std_test_data {
 
 static jmp_buf _std_test_jmp; // Jumps buffer to avoid exceptions ending tests
 static jmp_buf _std_accept_except_jmp; // Jumps to handle [IS_PANIC] tests
+static jmp_buf _std_accept_exit_jmp; // Jumps to handle [IS_NONZERO_EXIT] tests
 
 [[noreturn]]
 static inline void _std_test_abort() {
@@ -203,22 +243,29 @@ static inline void _std_test_abort() {
 
 [[noreturn]]
 static inline void _std_test_exit([[maybe_unused]] int code) {
-  _std_test_abort();
+  if (code != 0) {
+    std_eprintf("> -- Test exited with code %d.\n", code);
+    longjmp(_std_test_jmp, 2);
+  } else
+    longjmp(_std_test_jmp, -1);
 }
 
 [[noreturn]]
 static inline void _std_accept_except_abort() {
-  std_eprintf("-- Exception accepted.\n");
-  longjmp(_std_accept_except_jmp, 1);
+  longjmp(_std_accept_except_jmp, -1);
 }
 
 [[noreturn]]
-static inline void _std_accept_except_exit([[maybe_unused]] int code) {
-  _std_accept_except_abort();
+static inline void _std_accept_except_exit(int code) {
+  if (code != 0) {
+    std_eprintf("> -- Test exited with code %d.\n", code);
+    longjmp(_std_accept_exit_jmp, -1);
+  } else {
+    longjmp(_std_accept_exit_jmp, 1);
+  }
 }
 
 [[noreturn]]
-static inline void _std_sigsegv_handler(int sig) {
-  psignal(sig, "Test");
-  longjmp(_std_test_jmp, 2);
+static inline void _std_sigsegv_handler([[maybe_unused]] int sig) {
+  longjmp(_std_test_jmp, 3);
 }

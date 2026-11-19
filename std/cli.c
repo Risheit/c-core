@@ -87,7 +87,12 @@ std_argument std_cli_argv_next(int argc, const char **argv) {
 }
 
 static std_string cli_get_arg_t(int *opt_cur, bool *is_args_region,
-                                std_argument opt, int argc, const char **argv) {
+                                std_argument opt, int argc, const char **argv,
+                                bool allow_arg_after_space) {
+  if (opt.type == ARG_ARGUMENT) {
+    return opt.argument.val;
+  }
+
   if (opt.option._has_arg) {
     return opt.option._arg;
   }
@@ -95,6 +100,12 @@ static std_string cli_get_arg_t(int *opt_cur, bool *is_args_region,
   if (*opt_cur >= argc || *is_args_region) {
     return std_str_empty();
   }
+
+  if (!allow_arg_after_space) {
+    return std_str_empty();
+  }
+
+  // Remaining code consumes argument from next argv token
 
   std_string this_arg = str(argv[*opt_cur]);
 
@@ -115,27 +126,42 @@ static std_string cli_get_arg_t(int *opt_cur, bool *is_args_region,
 }
 
 std_string std_cli_get_arg(std_argument opt, int argc, const char **argv) {
+  return cli_get_arg_t(&g_opt_cur, &g_is_args_region, opt, argc, argv, false);
+}
+
+std_string std_cli_get_arg_loose(std_argument opt, int argc,
+                                 const char **argv) {
   std_assert(opt.type == ARG_OPTION, "Parmater passed in was not an option");
 
-  return cli_get_arg_t(&g_opt_cur, &g_is_args_region, opt, argc, argv);
+  return cli_get_arg_t(&g_opt_cur, &g_is_args_region, opt, argc, argv, true);
 }
 
 bool std_cli_has_arg_t(int *opt_cur, bool *is_args_region, std_argument opt,
-                       int argc, const char **argv) {
+                       int argc, const char **argv,
+                       bool allow_arg_after_space) {
   std_assert(opt.type == ARG_OPTION, "Parmater passed in was not an option");
 
-  std_string val =
-      cli_get_arg_t(&g_opt_cur, &g_is_args_region, opt, argc, argv);
+  const int original_opt_cur = *opt_cur;
+
+  std_string val = cli_get_arg_t(&g_opt_cur, &g_is_args_region, opt, argc, argv,
+                                 allow_arg_after_space);
   if (std_str_is_empty(val)) {
     return false;
   }
 
-  (*opt_cur)--; // Argument found, walk back to previous option
+  // Argument found, rewind token consumption if necessary
+  *opt_cur = original_opt_cur;
   return true;
 }
 
 bool std_cli_has_arg(std_argument opt, int argc, const char **argv) {
-  return std_cli_has_arg_t(&g_opt_cur, &g_is_args_region, opt, argc, argv);
+  return std_cli_has_arg_t(&g_opt_cur, &g_is_args_region, opt, argc, argv,
+                           false);
+}
+
+bool std_cli_has_arg_loose(std_argument opt, int argc, const char **argv) {
+  return std_cli_has_arg_t(&g_opt_cur, &g_is_args_region, opt, argc, argv,
+                           true);
 }
 
 void std_cli_argv_reset() {
@@ -146,3 +172,5 @@ void std_cli_argv_reset() {
 bool std_cli_is_option(std_argument arg, std_string name) {
   return arg.type == ARG_OPTION && std_str_compare(arg.option.name, name) == 0;
 }
+
+bool std_cli_is_arg(std_argument arg) { return arg.type == ARG_ARGUMENT; }

@@ -48,36 +48,46 @@ typedef struct std_argument {
  * strings normally considered options.
  *
  * Options can be provided with option arguments.
- * * [-f] provides the [-f] short option with the argument [arg].
- * * [--long] provides the [--long] long option with the argument [arg].
- * The [std_cli_get_arg] function can be used to attempt to get an argument for
- * a given option if it exists.
- *
- * Arguments passed in of the form [-f arg] or [--long arg] are not recognized
- * by default, and options will be marked as having no argument. If an argument
- * is expected or allowed,
- *
- * This function is not thread-safe.
+ * * [-farg] provides the [-f] short option with the argument [arg].
+ * * [--long=arg] provides the [--long] long option with the argument [arg].
+ * The [std_cli_get_arg] or [std_cli_get_arg_loose] function can be used to
+ * attempt to get an argument for a given option if it exists.
  */
 std_argument std_cli_argv_next(int argc, const char **argv);
 
 /**
- * Attempts to get the next argument for a previous option parsed [opt] using
- * [std_cli_argv_next], returning an empty string if no argument exists. This
- * function should only be called directly after a [std_cli_argv_next] call
- * that has parsed the option [opt], and not after any succeeding
- * [std_cli_argv_next] calls. It should not be called if the option [opt] cannot
- * have an argument, instead use [std_cli_has_arg] to check if an option has
- * been given an invalid argument.
+ * This function should only be
+ * called directly after a [std_cli_argv_next] call that has parsed the option
+ * [arg], and not after any succeeding [std_cli_argv_next] calls.
+ *
+ * When [arg] is a CLI argument:
+ *
+ * This function returns the value of [arg] as a string. It is equivalent to
+ * the expression [arg.argument.val]
+ *
+ * When [arg] is a CLI option:
+ *
+ * This function attempts to get the next argument for a previous option parsed
+ * [arg], returning an empty string if no argument exists.
  *
  * The following methods are valid when recognizing arguments:
- * * [-farg] or [-f arg] provide the argument [arg] to the flag [-f].
- * * [--long=arg] or [--long arg] provide the argument [arg] to the flag
- * [--long].
+ * * [-farg] provides the argument [arg] to the flag [-f].
+ * * [--long=arg] provides the argument [arg] to the flag [--long].
  *
- * Undefined behaviour if [opt] isn't an option.
+ * To support spaces between options and arguments, use [std_cli_get_arg_loose].
  */
-std_string std_cli_get_arg(std_argument opt, int argc, const char **argv);
+std_string std_cli_get_arg(std_argument arg, int argc, const char **argv);
+
+/**
+ * Functions identically to [std_cli_get_arg], but allows spaces between options
+ * and arguments.
+ *
+ * The following methods are valid when recognizing arguments:
+ * * [-farg] or [-f arg] provides the argument [arg] to the flag [-f].
+ * * [--long=arg] or [--long arg] provides the argument [arg] to the flag
+ * [--long].
+ */
+std_string std_cli_get_arg_loose(std_argument opt, int argc, const char **argv);
 
 /**
  * Returns true if a previous option parsed [opt] using [std_cli_argv_next] has
@@ -87,13 +97,27 @@ std_string std_cli_get_arg(std_argument opt, int argc, const char **argv);
  * [std_cli_argv_next] calls.
  *
  * The following methods are valid when recognizing arguments:
- * * [-farg] or [-f arg] provide the argument [arg] to the flag [-f].
- * * [--long=arg] or [--long arg] provide the argument [arg] to the flag
- * [--long].
+ * * [-farg] provides the argument [arg] to the flag [-f].
+ * * [--long=arg] provides the argument [arg] to the flag [--long].
  *
+ * Undefined behaviour if [opt] isn't an option. [opt] should be confirmed as an
+ * option using [std_cli_is_option] before calling this function.
+ *
+ * To support spaces between options and arguments, use [std_cli_has_arg_loose].
  * Undefined behaviour if [opt] isn't an option.
  */
 bool std_cli_has_arg(std_argument opt, int argc, const char **argv);
+
+/**
+ * Functions identically to [std_cli_has_arg], but allows spaces between options
+ * and arguments.
+ *
+ * The following methods are valid when recognizing arguments:
+ * * [-farg] or [-f arg] provides the argument [arg] to the flag [-f].
+ * * [--long=arg] or [--long arg] provides the argument [arg] to the flag
+ * [--long].
+ */
+bool std_cli_has_arg_loose(std_argument opt, int argc, const char **argv);
 
 /**
  * Resets the state of argument parsing. Calling [next_argv] after calling this
@@ -108,5 +132,10 @@ void std_cli_argv_reset();
  * [name]. Note that option names including any preceding "-" characters.
  */
 bool std_cli_is_option(std_argument arg, std_string name);
+
+/**
+ * Returns true if and only if [arg] is a CLI argument.
+ */
+bool std_cli_is_arg(std_argument arg);
 
 #endif // STD_CLI_H

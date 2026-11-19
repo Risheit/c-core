@@ -33,8 +33,8 @@ typedef struct test_node {
 } test_node;
 
 void print_help(const char *name) {
-  std_printf("%s [-l level | --  [-f file | --file=file] ... \n", name);
-  std_printf("\t -f, --file: Runs the given test file.\n");
+  std_printf("%s [option] ... file [file ...] \n", name);
+  std_printf("\t -h, --help: Prints this help menu.\n");
   std_printf("\t -v, --verbose: Prints all information when running tests.\n");
 }
 
@@ -62,8 +62,8 @@ int run_tests(test_node *head, test_opts opts) {
 
     // Argument strings are null-terminated
     int ret = system(std_buf(path));
-    if (ret == -1) {
-      std_eprintf("Unable to launch test file: %s\n", std_buf(path));
+    if (ret != 0) {
+      std_eprintf("> Unable to run test file: %s\n", std_buf(path));
       invalid_tests++;
     } else if (ret > 0) {
       failed_tests++;
@@ -73,13 +73,13 @@ int run_tests(test_node *head, test_opts opts) {
   }
 
   if (failed_tests == 0) {
-    std_printf("\nAll tests passed!\n");
+    std_printf("\n> All tests passed!\n");
   } else {
-    std_printf("\nIn total, there were %d failing test file(s).\n",
+    std_printf("\n> There were %d failing test file(s).\n",
                failed_tests);
   }
   if (invalid_tests > 0) {
-    std_printf("\nUnable to launch some test file(s)!\n");
+    std_printf("> Unable to launch some test file(s)!\n");
   }
 
   return failed_tests;
@@ -104,19 +104,15 @@ int main(int argc, const char **argv) {
 
   std_argument arg = std_cli_argv_next(argc, argv);
   while (arg.type != ARG_END) {
-    if (is_option(arg, "-h", "--help")) {
+    if (is_option(arg, "-h", "--help") && !std_cli_has_arg(arg, argc, argv)) {
       print_help(argv[0]);
-    } else if (is_option(arg, "-f", "--file")) {
-      std_string val = std_cli_get_arg(arg, argc, argv);
-      if (std_str_is_empty(val)) {
-        exit_bad_cli("Missing argument filename for -f or --file option.\n");
-      }
-      add_test_file(arena, &head, val);
-    } else if (is_option(arg, "-v", "--verbose")) {
-      if (std_cli_has_arg(arg, argc, argv)) {
-        exit_bad_cli("Invalid argument provided for -f or --verbose option.\n");
-      }
+      return 0;
+    } else if (is_option(arg, "-v", "--verbose") &&
+               !std_cli_has_arg(arg, argc, argv)) {
       opts.is_verbose = true;
+    } else if (std_cli_is_arg(arg)) {
+      std_printf(">%s\n", std_buf(arg.argument.val));
+      add_test_file(arena, &head, arg.argument.val);
     } else {
       exit_bad_cli("Unrecognized option provided.\n");
     }
